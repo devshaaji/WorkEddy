@@ -1,0 +1,75 @@
+version: '3.9'
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./api/public:/var/www/html/public:ro
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    working_dir: /var/www/html
+    volumes:
+      - ./api:/var/www/html
+      - ./storage:/storage
+    environment:
+      APP_ENV: local
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: workeddy
+      DB_USER: workeddy
+      DB_PASS: workeddy
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: change-me-in-production
+      JWT_TTL_SECONDS: 3600
+    depends_on:
+      - mysql
+      - redis
+
+  worker:
+    build:
+      context: ./workers
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - ./workers:/app
+      - ./storage:/storage
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: workeddy
+      DB_USER: workeddy
+      DB_PASS: workeddy
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - mysql
+      - redis
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: workeddy
+      MYSQL_USER: workeddy
+      MYSQL_PASSWORD: workeddy
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+
+volumes:
+  mysql_data:
