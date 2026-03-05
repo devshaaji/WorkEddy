@@ -104,7 +104,7 @@ Risk Scoring Engine
 
 Frontend
 
-HTML Bootstrap 5 Vanilla JavaScript Fetch API Alpine.js
+HTML Bootstrap 5 Vanilla JavaScript Fetch API Alpine.js
 
 Backend
 
@@ -671,6 +671,20 @@ Raw videos can be automatically deleted after processing depending on policy.
 
 ---
 
+# 24. Data Retention
+
+Video retention configurable.
+
+Example:
+
+30 days default.
+
+After that:
+
+Video deleted, analysis kept.
+
+---
+
 # 25. DevOps Architecture
 
 Infrastructure components
@@ -684,6 +698,8 @@ server storage
 
 Deployment via Docker Compose initially.
 
+Kubernetes optional later.
+
 ---
 
 # 26. Scaling Strategy
@@ -693,8 +709,6 @@ API servers scale horizontally.
 Video processing workers scale independently.
 
 Queue buffers processing load.
-
-Server-side file storage used for persistence.
 
 ---
 
@@ -775,8 +789,672 @@ Observer validation
 Usage billing
 Analytics
 
-#
+---
+
+# 31. Future Enhancements
+
+Real-time video posture analysis
+ML-based ergonomic risk prediction
+Native mobile apps
+Automated ergonomic recommendations
 
 ---
 
-END OF DOCUMENT
+# UI / UX PAGE SPECIFICATION
+
+## 1. Landing Page
+
+Purpose: Explain product value and convert visitors.
+
+Sections:
+
+* Hero section (product summary)
+* Explanation of musculoskeletal risk detection
+* How WorkEddy works
+* Pricing tiers (usage based)
+* CTA: Sign Up
+* CTA: Book Demo
+
+Components:
+
+* Navbar
+* Footer
+* Pricing cards
+
+Frontend: Bootstrap 5 components.
+
+---
+
+## 2. Login Page
+
+Fields:
+
+* Email
+* Password
+
+Actions:
+
+* Login
+* Forgot password
+
+Security:
+
+* Rate limiting
+* CAPTCHA (optional)
+
+---
+
+## 3. Signup Page
+
+Fields:
+
+* Organization Name
+* Admin Name
+* Email
+* Password
+* Confirm Password
+
+Process:
+
+1. Create organization
+2. Create admin user
+3. Assign trial credits
+
+---
+
+## 4. Dashboard
+
+Purpose: Provide overview of activity.
+
+Widgets:
+
+* Total scans used
+* Remaining usage credits
+* High risk tasks
+* Recent scans
+* Tasks needing follow-up
+
+Charts:
+
+* Risk distribution
+* Weekly scan usage
+
+---
+
+## 5. Tasks Page
+
+Purpose: Manage warehouse tasks.
+
+Features:
+
+* Create task
+* Edit task
+* Assign department
+
+Task fields:
+
+* Task name
+* Description
+* Workstation
+* Department
+
+---
+
+## 6. New Scan Page
+
+User chooses:
+
+Scan Type:
+
+* Manual assessment
+* Video analysis
+
+---
+
+## 7. Manual Scan Form
+
+Sections:
+
+Posture Assessment
+
+* Trunk angle
+* Neck angle
+* Arm elevation
+
+Load Assessment
+
+* Weight handled
+
+Repetition
+
+* Repetitions per minute
+
+Duration
+
+* Exposure duration
+
+System computes risk score immediately.
+
+---
+
+## 8. Video Upload Page
+
+Upload fields:
+
+* Video file
+* Task
+* Worker role
+
+Supported formats:
+
+* MP4
+* MOV
+
+After upload:
+Video stored on server filesystem under `/storage/uploads/videos/`.
+
+Processing status shown.
+
+---
+
+## 9. Scan Results Page
+
+Displays:
+
+* Risk score
+* Risk category
+* Body segment analysis
+
+Visual components:
+
+* Pose skeleton overlay
+* Risk heatmap
+
+---
+
+## 10. Repeat Scan Comparison
+
+Displays:
+
+Before vs After risk score.
+
+Charts:
+
+* Risk reduction graph
+
+---
+
+## 11. Observer Validation Page
+
+Purpose: Allow ergonomic observers to input rating.
+
+Fields:
+
+* RULA score
+* REBA score
+
+Comparison shown against WorkEddy score.
+
+---
+
+# API CONTRACT DEFINITIONS
+
+All endpoints use JSON.
+
+Base URL:
+
+/api/v1/
+
+Authentication:
+
+Bearer token via Authorization header.
+
+---
+
+## Auth
+
+POST /auth/signup
+
+Request:
+
+{
+"organization_name": "Warehouse Ltd",
+"email": "admin@company.com",
+"password": "password"
+}
+
+Response:
+
+{
+"user_id": 1,
+"token": "JWT_TOKEN"
+}
+
+---
+
+POST /auth/login
+
+Request:
+
+{
+"email": "admin@company.com",
+"password": "password"
+}
+
+Response:
+
+{
+"token": "JWT_TOKEN"
+}
+
+---
+
+## Tasks
+
+GET /tasks
+
+Returns list of tasks.
+
+POST /tasks
+
+Request:
+
+{
+"name": "Box Lifting",
+"description": "Lift box from pallet"
+}
+
+---
+
+## Scans
+
+POST /scans/manual
+
+Request:
+
+{
+"task_id": 3,
+"trunk_angle": 45,
+"neck_angle": 20,
+"arm_angle": 30,
+"weight": 15,
+"repetition_rate": 10
+}
+
+Response:
+
+{
+"risk_score": 68,
+"risk_category": "High"
+}
+
+---
+
+POST /scans/video
+
+Upload multipart form.
+
+Returns:
+
+{
+"scan_id": 24,
+"status": "processing"
+}
+
+---
+
+GET /scans/{id}
+
+Returns scan results.
+
+---
+
+# VIDEO POSE DETECTION ALGORITHM
+
+Pipeline:
+
+1. Video upload
+2. Frame extraction
+3. Pose detection
+4. Angle calculation
+5. Risk model scoring
+
+Recommended library:
+
+MediaPipe Pose
+
+or
+
+OpenPose
+
+---
+
+## Frame Processing
+
+Video split into frames every:
+
+10 fps
+
+---
+
+## Keypoints
+
+Pose detection extracts:
+
+* Shoulder
+* Elbow
+* Wrist
+* Hip
+* Knee
+* Ankle
+
+---
+
+## Angle Calculation
+
+Example: trunk flexion
+
+Angle between:
+
+hip -> shoulder vector
+and
+vertical axis
+
+---
+
+## Risk Mapping
+
+Angles mapped to ergonomic risk bands.
+
+Example:
+
+Trunk flexion:
+
+0–20° : Low
+
+20–45° : Medium
+
+> 45° : High
+
+---
+
+# QUEUE + WORKER SCALING MODEL
+
+Video processing is CPU intensive.
+
+Use queue-based architecture.
+
+---
+
+## Queue System
+
+Recommended:
+
+Redis + BullMQ
+
+or
+
+RabbitMQ
+
+---
+
+## Worker Types
+
+Video workers
+
+Responsible for:
+
+* Frame extraction
+* Pose detection
+
+Risk workers
+
+Responsible for:
+
+* Angle calculation
+* Risk scoring
+
+---
+
+## Worker Scaling
+
+Horizontal scaling based on queue size.
+
+Example:
+
+If queue length > 100
+
+Auto scale workers.
+
+---
+
+## Processing Pipeline
+
+1. Upload video
+2. Job added to queue
+3. Worker pulls job
+4. Frames extracted
+5. Pose detection
+6. Risk analysis
+7. Results saved
+
+---
+
+# PERFORMANCE TARGETS
+
+Video processing target:
+
+1 minute video processed in < 90 seconds.
+
+---
+
+# FUTURE EXTENSIONS
+
+Potential future modules:
+
+* Real time camera analysis
+* Mobile scanning
+* AI risk prediction
+* Integration with warehouse WMS systems
+
+---
+
+# 15. Project Structure
+
+This project follows a **modular monolithic architecture** suitable for a PHP + Python worker environment. The web application handles UI, authentication, and API orchestration, while heavy video processing runs in isolated worker services.
+
+```text
+workedddy/
+│
+├── composer.json
+├── composer.lock
+│
+├── app/
+│   ├── config/
+│   │   ├── app.php
+│   │   ├── database.php
+│   │   ├── queue.php
+│   │   └── storage.php
+│   ├── controllers/
+│   │   ├── AuthController.php
+│   │   ├── DashboardController.php
+│   │   ├── ScanController.php
+│   │   ├── TaskController.php
+│   │   ├── WorkspaceController.php
+│   │   └── BillingController.php
+│   ├── services/
+│   │   ├── ScanService.php
+│   │   ├── RiskScoreService.php
+│   │   ├── VideoProcessingService.php
+│   │   ├── UsageMeterService.php
+│   │   └── NotificationService.php
+│   ├── repositories/
+│   │   ├── UserRepository.php
+│   │   ├── ScanRepository.php
+│   │   ├── TaskRepository.php
+│   │   └── WorkspaceRepository.php
+│   ├── middleware/
+│   │   ├── AuthMiddleware.php
+│   │   ├── TenantMiddleware.php
+│   │   └── RateLimitMiddleware.php
+│   ├── models/
+│   │   ├── User.php
+│   │   ├── Workspace.php
+│   │   ├── Task.php
+│   │   ├── Scan.php
+│   │   └── ScanResult.php
+│   └── helpers/
+│       ├── Response.php
+│       ├── Validator.php
+│       └── Auth.php
+├── public/
+│   ├── index.php
+│   ├── assets/
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── images/
+│   └── uploads/
+├── routes/
+│   ├── web.php
+│   └── api.php
+├── views/
+│   ├── layouts/
+│   │   ├── main.php
+│   │   └── auth.php
+│   ├── auth/
+│   │   ├── login.php
+│   │   ├── register.php
+│   │   └── forgot-password.php
+│   ├── dashboard/
+│   │   └── index.php
+│   ├── scans/
+│   │   ├── new-manual.php
+│   │   ├── new-video.php
+│   │   └── results.php
+│   └── tasks/
+│       ├── index.php
+│       └── view.php
+├── storage/
+│   ├── logs/
+│   ├── temp/
+│   └── exports/
+├── workers/
+│   ├── video-worker/
+│   │   ├── worker.py
+│   │   ├── pose_detector.py
+│   │   ├── frame_extractor.py
+│   │   └── risk_calculator.py
+│   └── queue-listener/
+│       └── worker_runner.py
+├── ml/
+│   ├── models/
+│   │   └── pose_model.onnx
+│   ├── processing/
+│   │   ├── pose_estimation.py
+│   │   ├── angle_calculation.py
+│   │   └── ergonomic_rules.py
+├── infrastructure/
+│   ├── docker/
+│   │   ├── php.dockerfile
+│   │   ├── worker.dockerfile
+│   │   └── nginx.conf
+│   └── queue/
+│       └── redis.conf
+├── scripts/
+│   ├── deploy.sh
+│   ├── migrate.php
+│   └── seed.php
+├── tests/
+│   ├── api/
+│   ├── services/
+│   └── workers/
+└── README.md
+```
+
+## Key Directory Responsibilities
+
+### app/
+
+Core backend business logic.
+
+### workers/
+
+Isolated video analysis services running independently from the web app.
+
+### ml/
+
+Machine learning utilities and ergonomic analysis logic.
+
+### infrastructure/
+
+Infrastructure configuration for Docker and queues.
+
+### storage/
+
+Server-side persistent storage for uploaded videos and generated artifacts.
+
+### routes/
+
+Defines all HTTP and API routes.
+
+### views/
+
+Bootstrap 5 server-rendered UI pages.
+
+---
+
+## Worker Communication Flow
+
+1. User uploads video
+2. File stored in server storage (`/storage/uploads/videos`)
+3. Job pushed to Redis queue
+4. Video worker retrieves job
+5. Worker processes video
+6. Pose detection executed
+7. Risk score computed
+8. Results saved in database
+9. Dashboard updated
+
+---
+
+## Development Environments
+
+### Local Development
+
+Components:
+
+* PHP Application
+* MySQL
+* Redis
+* Python Workers
+
+Run using Docker Compose.
+
+### Production
+
+Recommended architecture:
+
+* Load balancer
+* Multiple PHP web servers
+* Redis cluster
+* Worker autoscaling nodes
+
+---
+
+## Coding Conventions
+
+Backend:
+
+* PSR-style naming conventions
+* Service-based business logic
+* Repository pattern for DB
+
+Frontend:
+
+* Bootstrap 5
+* Fetch API for async operations
+
+Workers:
+
+* Python 3.11
+* Async job processing
