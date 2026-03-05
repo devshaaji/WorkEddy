@@ -12,6 +12,10 @@ final class AuthService
     public function __construct(
         private Connection $db,
         private JwtService $jwtService,
+<<<<<<< codex/break-down-requirements-and-start-project-setup-43uxpf
+        private BillingService $billingService,
+=======
+>>>>>>> main
     ) {
     }
 
@@ -36,6 +40,11 @@ final class AuthService
             );
             $userId = (int) $this->db->lastInsertId();
 
+<<<<<<< codex/break-down-requirements-and-start-project-setup-43uxpf
+            $this->billingService->createDefaultSubscription($organizationId);
+
+=======
+>>>>>>> main
             return [
                 'token' => $this->jwtService->issueToken($userId, $organizationId, 'admin'),
                 'user' => ['id' => $userId, 'organization_id' => $organizationId, 'name' => $name, 'email' => strtolower($email), 'role' => 'admin'],

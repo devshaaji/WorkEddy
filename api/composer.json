@@ -8,7 +8,12 @@
     "nikic/fast-route": "^1.3",
     "monolog/monolog": "^3.7",
     "doctrine/dbal": "^4.0",
+<<<<<<< codex/break-down-requirements-and-start-project-setup-43uxpf
+    "firebase/php-jwt": "^6.10",
+    "predis/predis": "^2.2"
+=======
     "firebase/php-jwt": "^6.10"
+>>>>>>> main
   },
   "autoload": {
     "psr-4": {

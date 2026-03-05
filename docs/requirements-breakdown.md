@@ -97,3 +97,20 @@ Next suggested implementation steps:
 3. Build Task and Manual Scan APIs.
 4. Add Redis job producer + worker consumer contract.
 5. Add dashboard aggregation queries.
+<<<<<<< codex/break-down-requirements-and-start-project-setup-43uxpf
+
+
+## Milestone 3 Delivery Notes
+- Added video upload endpoint and async queueing (`POST /scans/video`).
+- Added worker-side sampled-frame processing (every 4th frame) and metric persistence in `video_metrics`.
+- Added status transition path for scans (`processing` -> `completed`/`invalid`) with final risk scoring update.
+
+
+## Milestone 4 Delivery Notes
+- Added observer rating creation and retrieval workflows for validation studies.
+- Added pricing data model (`plans`, `subscriptions`) with seeded Starter/Professional/Enterprise plans.
+- Added billing usage APIs for monthly usage and remaining scan limits.
+- Added plan limit enforcement in scan creation flows.
+- Expanded dashboard analytics with department risk heatmap and observer alignment categories.
+=======
+>>>>>>> main

@@ -67,6 +67,18 @@ CREATE TABLE IF NOT EXISTS usage_records (
     CONSTRAINT fk_usage_scan FOREIGN KEY (scan_id) REFERENCES scans(id) ON DELETE CASCADE
 );
 
+<<<<<<< codex/break-down-requirements-and-start-project-setup-43uxpf
+CREATE TABLE IF NOT EXISTS video_metrics (
+    scan_id BIGINT UNSIGNED PRIMARY KEY,
+    max_trunk_angle DECIMAL(10,2) NOT NULL,
+    avg_trunk_angle DECIMAL(10,2) NOT NULL,
+    shoulder_elevation_duration DECIMAL(10,2) NOT NULL,
+    repetition_count INT NOT NULL,
+    processing_confidence DECIMAL(5,2) NOT NULL,
+    CONSTRAINT fk_video_metrics_scan FOREIGN KEY (scan_id) REFERENCES scans(id) ON DELETE CASCADE
+);
+=======
+>>>>>>> main
 
 CREATE TABLE IF NOT EXISTS observer_ratings (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -79,3 +91,18 @@ CREATE TABLE IF NOT EXISTS observer_ratings (
     CONSTRAINT fk_observer_scan FOREIGN KEY (scan_id) REFERENCES scans(id) ON DELETE CASCADE,
     CONSTRAINT fk_observer_user FOREIGN KEY (observer_id) REFERENCES users(id) ON DELETE CASCADE
 );
+<<<<<<< codex/break-down-requirements-and-start-project-setup-43uxpf
+
+INSERT INTO plans (name, scan_limit, price, created_at)
+SELECT 'starter', 100, 99.00, NOW()
+WHERE NOT EXISTS (SELECT 1 FROM plans WHERE name = 'starter');
+
+INSERT INTO plans (name, scan_limit, price, created_at)
+SELECT 'professional', 500, 299.00, NOW()
+WHERE NOT EXISTS (SELECT 1 FROM plans WHERE name = 'professional');
+
+INSERT INTO plans (name, scan_limit, price, created_at)
+SELECT 'enterprise', NULL, 999.00, NOW()
+WHERE NOT EXISTS (SELECT 1 FROM plans WHERE name = 'enterprise');
+=======
+>>>>>>> main
