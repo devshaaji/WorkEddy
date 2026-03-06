@@ -1,0 +1,142 @@
+<?php
+
+declare(strict_types=1);
+
+namespace WorkEddy\Services;
+
+use RuntimeException;
+use WorkEddy\Repositories\AdminRepository;
+
+final class AdminService
+{
+    public function __construct(private readonly AdminRepository $adminRepo) {}
+
+    /* ── Organizations ───────────────────────────────────────────────── */
+
+    public function listOrganizations(): array
+    {
+        return $this->adminRepo->listAllOrganizations();
+    }
+
+    public function showOrganization(int $id): array
+    {
+        $org = $this->adminRepo->findOrganizationById($id);
+        if (!$org) {
+            throw new RuntimeException('Organization not found');
+        }
+        return $org;
+    }
+
+    public function createOrganization(string $name, ?string $contactEmail): array
+    {
+        $slug = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', trim($name)));
+        $slug = trim($slug, '-');
+        $id   = $this->adminRepo->createOrganization($name, $slug, $contactEmail);
+
+        return ['id' => $id, 'name' => $name, 'slug' => $slug];
+    }
+
+    public function updateOrganization(int $id, array $data): void
+    {
+        $org = $this->adminRepo->findOrganizationById($id);
+        if (!$org) {
+            throw new RuntimeException('Organization not found');
+        }
+
+        $allowed  = ['name', 'slug', 'contact_email', 'status'];
+        $filtered = array_intersect_key($data, array_flip($allowed));
+
+        if (isset($filtered['name']) && !isset($filtered['slug'])) {
+            $filtered['slug'] = trim(strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', trim($filtered['name']))), '-');
+        }
+
+        $this->adminRepo->updateOrganization($id, $filtered);
+    }
+
+    /* ── Users (global) ──────────────────────────────────────────────── */
+
+    public function listUsers(): array
+    {
+        return $this->adminRepo->listAllUsers();
+    }
+
+    public function updateUser(int $id, array $data): void
+    {
+        $allowed  = ['name', 'email', 'role', 'status', 'organization_id'];
+        $filtered = array_intersect_key($data, array_flip($allowed));
+
+        if (isset($filtered['role'])) {
+            $validRoles = ['admin', 'supervisor', 'worker', 'observer'];
+            if (!in_array($filtered['role'], $validRoles, true)) {
+                throw new RuntimeException('Invalid role. Allowed: ' . implode(', ', $validRoles));
+            }
+        }
+
+        if (isset($filtered['status'])) {
+            $validStatuses = ['active', 'inactive', 'invited'];
+            if (!in_array($filtered['status'], $validStatuses, true)) {
+                throw new RuntimeException('Invalid status. Allowed: ' . implode(', ', $validStatuses));
+            }
+        }
+
+        $this->adminRepo->updateUser($id, $filtered);
+    }
+
+    public function deleteUser(int $id): void
+    {
+        $this->adminRepo->deleteUser($id);
+    }
+
+    /* ── Plans ────────────────────────────────────────────────────────── */
+
+    public function listPlans(): array
+    {
+        return $this->adminRepo->listPlans();
+    }
+
+    public function createPlan(
+        string $name,
+        ?int $scanLimit,
+        float $price,
+        string $billingCycle = 'monthly'
+    ): array {
+        $id = $this->adminRepo->createPlan($name, $scanLimit, $price, $billingCycle);
+
+        return [
+            'id'            => $id,
+            'name'          => $name,
+            'scan_limit'    => $scanLimit,
+            'price'         => $price,
+            'billing_cycle' => $billingCycle,
+        ];
+    }
+
+    public function updatePlan(int $id, array $data): void
+    {
+        $plan = $this->adminRepo->findPlanById($id);
+        if (!$plan) {
+            throw new RuntimeException('Plan not found');
+        }
+
+        $allowed  = ['name', 'scan_limit', 'price', 'billing_cycle', 'status'];
+        $filtered = array_intersect_key($data, array_flip($allowed));
+
+        $this->adminRepo->updatePlan($id, $filtered);
+    }
+
+    public function deletePlan(int $id): void
+    {
+        $plan = $this->adminRepo->findPlanById($id);
+        if (!$plan) {
+            throw new RuntimeException('Plan not found');
+        }
+        $this->adminRepo->deletePlan($id);
+    }
+
+    /* ── System Stats ─────────────────────────────────────────────────── */
+
+    public function systemStats(): array
+    {
+        return $this->adminRepo->systemStats();
+    }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "workeddy/app",
+  "description": "WorkEddy ergonomic risk scanning platform",
+  "type": "project",
+  "require": {
+    "php": "^8.2",
+    "ext-pdo": "*",
+    "nikic/fast-route": "^1.3",
+    "monolog/monolog": "^3.7",
+    "doctrine/dbal": "^4.0",
+    "firebase/php-jwt": "^6.10",
+    "predis/predis": "^2.2"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11"
+  },
+  "autoload": {
+    "psr-4": {
+      "WorkEddy\\Core\\": "app/core/",
+      "WorkEddy\\Controllers\\": "app/controllers/",
+      "WorkEddy\\Helpers\\": "app/helpers/",
+      "WorkEddy\\Middleware\\": "app/middleware/",
+      "WorkEddy\\Models\\": "app/models/",
+      "WorkEddy\\Repositories\\": "app/repositories/",
+      "WorkEddy\\Services\\": "app/services/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "WorkEddy\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}

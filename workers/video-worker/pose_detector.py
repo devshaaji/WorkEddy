@@ -1,86 +1,37 @@
-"""Pose estimation helpers using MediaPipe."""
+"""Pose estimation helpers — delegates to the canonical ml/processing module.
+
+This module is a thin re-export layer. The actual implementation lives in
+``ml/processing/pose_estimation.py`` to avoid code duplication.
+"""
 
 from __future__ import annotations
 
-from math import degrees
+import importlib.util
+import sys
+from pathlib import Path
 
-import cv2
-import mediapipe as mp
-import numpy as np
+# Resolve the canonical ml/processing/pose_estimation module.
+# In the Docker image the layout is /app/ml/processing/pose_estimation.py
+# while locally the repo root holds ml/processing/pose_estimation.py.
+_CANDIDATES = [
+    Path(__file__).resolve().parents[2] / "ml" / "processing" / "pose_estimation.py",   # repo
+    Path("/app/ml/processing/pose_estimation.py"),                                       # docker
+]
 
-
-def _angle_from_vertical(dx: float, dy: float) -> float:
-    return abs(degrees(np.arctan2(dx, -dy)))
-
-
-def estimate_pose_metrics(video_path: str, sample_every_n: int = 4) -> dict[str, float | int]:
-    pose = mp.solutions.pose.Pose(static_image_mode=False, model_complexity=1)
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise RuntimeError(f"Cannot open video: {video_path}")
-
-    trunk_angles: list[float] = []
-    shoulder_elevated_frames = 0
-    sampled_frames = 0
-    confidence_total = 0.0
-    confidence_count = 0
-
-    frame_idx = 0
-    while True:
-        ok, frame = cap.read()
-        if not ok:
+_module = None
+for _path in _CANDIDATES:
+    if _path.is_file():
+        _spec = importlib.util.spec_from_file_location("ml_pose_estimation", str(_path))
+        if _spec and _spec.loader:
+            _module = importlib.util.module_from_spec(_spec)
+            _spec.loader.exec_module(_module)
             break
-        frame_idx += 1
-        if frame_idx % sample_every_n != 0:
-            continue
 
-        sampled_frames += 1
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        res = pose.process(rgb)
-        if not res.pose_landmarks:
-            continue
+if _module is None:
+    raise RuntimeError(
+        "Cannot locate ml/processing/pose_estimation.py. "
+        f"Searched: {[str(p) for p in _CANDIDATES]}"
+    )
 
-        lms = res.pose_landmarks.landmark
-        ls = lms[mp.solutions.pose.PoseLandmark.LEFT_SHOULDER]
-        rs = lms[mp.solutions.pose.PoseLandmark.RIGHT_SHOULDER]
-        lh = lms[mp.solutions.pose.PoseLandmark.LEFT_HIP]
-        rh = lms[mp.solutions.pose.PoseLandmark.RIGHT_HIP]
-
-        shoulder_x, shoulder_y = (ls.x + rs.x) / 2.0, (ls.y + rs.y) / 2.0
-        hip_x, hip_y = (lh.x + rh.x) / 2.0, (lh.y + rh.y) / 2.0
-
-        angle = _angle_from_vertical(shoulder_x - hip_x, shoulder_y - hip_y)
-        trunk_angles.append(float(angle))
-
-        if shoulder_y < 0.35:
-            shoulder_elevated_frames += 1
-
-        vis = (ls.visibility + rs.visibility + lh.visibility + rh.visibility) / 4.0
-        confidence_total += float(vis)
-        confidence_count += 1
-
-    cap.release()
-    pose.close()
-
-    if not trunk_angles:
-        raise RuntimeError("No pose landmarks detected in sampled frames")
-
-    avg_trunk_angle = float(np.mean(trunk_angles))
-    max_trunk_angle = float(np.max(trunk_angles))
-    shoulder_elevation_duration = shoulder_elevated_frames / max(1, sampled_frames)
-
-    rep = 0
-    prev_high = False
-    for a in trunk_angles:
-        high = a >= 30.0
-        if high and not prev_high:
-            rep += 1
-        prev_high = high
-
-    return {
-        "max_trunk_angle": round(max_trunk_angle, 2),
-        "avg_trunk_angle": round(avg_trunk_angle, 2),
-        "shoulder_elevation_duration": round(float(shoulder_elevation_duration), 4),
-        "repetition_count": rep,
-        "processing_confidence": round(confidence_total / max(1, confidence_count), 4),
-    }
+# Re-export the public API
+estimate_pose_metrics = _module.estimate_pose_metrics

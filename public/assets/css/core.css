@@ -1,0 +1,53 @@
+@import "../vendor/bootstrap/css/bootstrap.min.css";
+
+[x-cloak] { display: none !important; }
+
+:root {
+  /* Brand */
+  --we-primary:        #7c3aed;
+  --we-primary-dark:   #5b21b6;
+  --we-primary-light:  #ede9fe;
+  --we-primary-rgb:    124, 58, 237;
+
+  /* Surface */
+  --we-bg:             #f5f5f9;
+  --we-surface:        #ffffff;
+  --we-border:         #e7e7e9;
+  --we-text:           #2d2d2d;
+  --we-text-muted:     #8592a3;
+  --we-heading:        #1a1a2e;
+
+  /* Sidebar */
+  --sidebar-width:     260px;
+  --sidebar-bg:        #ffffff;
+  --sidebar-border:    #e7e7e9;
+  --sidebar-text:      #697a8d;
+  --sidebar-hover-bg:  #f5f5f9;
+  --sidebar-active-bg: #ede9fe;
+  --sidebar-active-txt:#7c3aed;
+
+  /* Navbar */
+  --navbar-height:     64px;
+  --navbar-bg:         #ffffff;
+
+  /* Radius */
+  --we-radius-sm:  0.375rem;
+  --we-radius:     0.5rem;
+  --we-radius-lg:  0.75rem;
+  --we-radius-xl:  1rem;
+
+  /* Shadows */
+  --we-shadow-xs: 0 1px 3px rgba(0,0,0,.05);
+  --we-shadow-sm: 0 2px 8px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --we-shadow:    0 4px 18px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+
+  /* Z-index */
+  --z-sidebar:  1020;
+  --z-navbar:   1019;
+  --z-overlay:  1010;
+  --z-toast:    1090;
+
+  /* Legacy compat */
+  --we-muted:   #8592a3;
+  --we-radius-legacy: 0.5rem;
+}
