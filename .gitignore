@@ -1,0 +1,34 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Dependencies
+/vendor/
+
+# Runtime/cache artifacts
+/.phpunit.cache/
+/.pytest_cache/
+/storage/logs/*
+!/storage/logs/.gitignore
+/storage/temp/*
+!/storage/temp/.gitignore
+/storage/uploads/*
+!/storage/uploads/.gitignore
+/storage/exports/*
+!/storage/exports/.gitignore
+
+# Python worker artifacts
+**/__pycache__/
+**/*.py[cod]
+
+# Logs and reports
+*.log
+coverage/
+.phpunit.result.cache
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
