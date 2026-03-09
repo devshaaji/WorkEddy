@@ -9,7 +9,7 @@ Production-oriented implementation of WorkEddy aligned to `requirements.md` stac
 - **Logging:** Monolog
 - **DB layer:** Doctrine DBAL
 - **Auth/JWT:** firebase/php-jwt
-- **Queue:** Redis
+- **Queue:** Configurable (`QUEUE_DRIVER=redis|db`)
 - **Database:** MySQL 8+
 - **Frontend:** Bootstrap 5 + Vanilla JS (+ Alpine.js included)
 - **Infra:** Docker Compose + Nginx + API + Worker
@@ -41,6 +41,7 @@ Base URL: `/api/v1` (legacy unprefixed routes are also accepted).
 - `GET /dashboard`
 - `POST /observer-rating`
 - `GET /health`
+- Internal worker endpoints: `POST /internal/worker/jobs/next`, `POST /internal/worker/scans/complete`, `POST /internal/worker/scans/fail` (token-authenticated)
 
 ## Setup
 
@@ -49,12 +50,29 @@ docker compose up --build
 ```
 
 ```bash
-docker compose exec api composer install
-docker compose exec api php scripts/migrate.php
+# one-off seed command (explicit)
+docker compose run --rm --profile ops seed
 ```
+
+Notes:
+- The API container now retries startup tasks and runs migrations automatically before `php-fpm` starts.
+- If `vendor/` is empty in the mounted volume, the API container runs `composer install` automatically.
+- The `seed` service reuses the same app image as `api` (`workeddy-app:local`) to avoid building a duplicate PHP image.
+
+## Database Commands
+
+- `php scripts/migrate.php migrate` - apply pending migrations
+- `php scripts/migrate.php rollback [batches]` - roll back latest migration batch(es)
+- `php scripts/migrate.php status` - list applied/pending migrations
+- `php scripts/seed.php run [filter]` - run seeders (use `demo` filter for demo seeders)
+- `composer migrate` - alias for migration
+- `composer seed` - alias for explicit seeding
 
 ## Notes
 
 - All business data endpoints are organization-scoped using JWT claims.
 - Role checks are enforced per endpoint.
-- Worker service is active for upcoming video pipeline expansion.
+- Worker service asks PHP for jobs via internal API (no direct Redis/DB queue access).
+- Worker extracts pose metrics only and reports results via internal API (no direct DB writes).
+- PHP `AssessmentEngine` is the single scoring authority for both manual and video scans.
+- Queue backend is selected by `QUEUE_DRIVER` (`redis` or `db`).

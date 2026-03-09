@@ -1,0 +1,21 @@
+{
+    "name": "rula_case_28_load_10kg",
+    "model": "rula",
+    "inputs": {
+        "upper_arm_angle": 35,
+        "lower_arm_angle": 80,
+        "wrist_angle": 10,
+        "neck_angle": 10,
+        "trunk_angle": 15,
+        "leg_score": 1,
+        "load_weight": 10
+    },
+    "expected_score": 3,
+    "expected_raw_score": 3,
+    "expected_normalized_score": 42.86,
+    "expected_risk_level": "Moderate - Further investigation, change may be needed",
+    "expected_risk_category": "moderate",
+    "expected_action_level_code": 2,
+    "expected_action_level_label": "Action Level 2: Further investigation, change may be needed",
+    "expected_algorithm_version": "rula_official_v1"
+}

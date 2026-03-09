@@ -1,0 +1,22 @@
+{
+    "name": "reba_case_23_load_11kg",
+    "model": "reba",
+    "inputs": {
+        "trunk_angle": 20,
+        "neck_angle": 15,
+        "upper_arm_angle": 30,
+        "lower_arm_angle": 80,
+        "wrist_angle": 10,
+        "leg_score": 1,
+        "load_weight": 11,
+        "coupling": "good"
+    },
+    "expected_score": 3,
+    "expected_raw_score": 3,
+    "expected_normalized_score": 20,
+    "expected_risk_level": "Low - Change may be needed",
+    "expected_risk_category": "low",
+    "expected_action_level_code": 1,
+    "expected_action_level_label": "Action Level 1: Low risk, change may be needed",
+    "expected_algorithm_version": "reba_official_v1"
+}

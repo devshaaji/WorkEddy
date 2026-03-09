@@ -1,0 +1,22 @@
+{
+    "name": "reba_case_02_trunk_20",
+    "model": "reba",
+    "inputs": {
+        "trunk_angle": 20,
+        "neck_angle": 10,
+        "upper_arm_angle": 15,
+        "lower_arm_angle": 80,
+        "wrist_angle": 5,
+        "leg_score": 1,
+        "load_weight": 0,
+        "coupling": "good"
+    },
+    "expected_score": 1,
+    "expected_raw_score": 1,
+    "expected_normalized_score": 6.67,
+    "expected_risk_level": "Negligible - No action required",
+    "expected_risk_category": "low",
+    "expected_action_level_code": 0,
+    "expected_action_level_label": "Action Level 0: Negligible risk",
+    "expected_algorithm_version": "reba_official_v1"
+}

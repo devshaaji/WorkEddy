@@ -1,0 +1,39 @@
+#!/bin/sh
+set -eu
+
+MAX_RETRIES="${STARTUP_MAX_RETRIES:-30}"
+SLEEP_SECONDS="${STARTUP_RETRY_SLEEP_SECONDS:-2}"
+
+log() {
+  echo "[api-entrypoint] $1"
+}
+
+ensure_dependencies() {
+  if [ ! -f /var/www/html/vendor/autoload.php ]; then
+    log "vendor/autoload.php not found; running composer install"
+    composer install --prefer-dist --no-interaction --optimize-autoloader
+  fi
+}
+
+wait_for_db_and_migrate() {
+  attempt=1
+  while [ "$attempt" -le "$MAX_RETRIES" ]; do
+    if php /var/www/html/scripts/migrate.php migrate; then
+      log "database migrations are up to date"
+      return 0
+    fi
+
+    log "migrate attempt ${attempt}/${MAX_RETRIES} failed; retrying in ${SLEEP_SECONDS}s"
+    attempt=$((attempt + 1))
+    sleep "$SLEEP_SECONDS"
+  done
+
+  log "migration failed after ${MAX_RETRIES} attempts"
+  return 1
+}
+
+ensure_dependencies
+wait_for_db_and_migrate
+
+log "starting: $*"
+exec "$@"

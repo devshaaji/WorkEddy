@@ -1,0 +1,25 @@
+{
+    "name": "reba_case_29_activity_all_flags",
+    "model": "reba",
+    "inputs": {
+        "trunk_angle": 35,
+        "neck_angle": 25,
+        "upper_arm_angle": 70,
+        "lower_arm_angle": 50,
+        "wrist_angle": 20,
+        "leg_score": 2,
+        "load_weight": 12,
+        "coupling": "poor",
+        "static_posture": true,
+        "repetitive": true,
+        "rapid_change": true
+    },
+    "expected_score": 12,
+    "expected_raw_score": 12,
+    "expected_normalized_score": 80,
+    "expected_risk_level": "Very High - Implement change now",
+    "expected_risk_category": "high",
+    "expected_action_level_code": 4,
+    "expected_action_level_label": "Action Level 4: Very high risk, implement change now",
+    "expected_algorithm_version": "reba_official_v1"
+}

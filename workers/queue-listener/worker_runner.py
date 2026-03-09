@@ -1,19 +1,17 @@
-"""Redis queue listener for WorkEddy video processing jobs."""
+"""Worker loop that pulls jobs from the PHP control plane."""
 
 from __future__ import annotations
 
 import importlib.util
-import json
 import os
 import time
 from pathlib import Path
-
-import pymysql
-import redis
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parent
 VIDEO_WORKER = ROOT.parent / "video-worker" / "worker.py"
+POLL_INTERVAL_SECONDS = float(os.getenv("WORKER_POLL_INTERVAL_SECONDS", "2"))
 
 
 spec = importlib.util.spec_from_file_location("video_worker", VIDEO_WORKER)
@@ -23,53 +21,34 @@ video_worker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(video_worker)
 
 
-def db_connection() -> pymysql.connections.Connection:
-    return pymysql.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=int(os.getenv("DB_PORT", "3306")),
-        user=os.getenv("DB_USER", "workeddy"),
-        password=os.getenv("DB_PASS", "workeddy"),
-        database=os.getenv("DB_NAME", "workeddy"),
-        autocommit=False,
-        cursorclass=pymysql.cursors.DictCursor,
-    )
-
-
 def run() -> None:
-    client = redis.Redis(
-        host=os.getenv("REDIS_HOST", "localhost"),
-        port=int(os.getenv("REDIS_PORT", "6379")),
-        decode_responses=True,
-    )
-    queue_name = os.getenv("WORKER_QUEUE", "scan_jobs")
-    print(f"[worker-runner] listening queue='{queue_name}'")
+    print("[worker-runner] polling PHP internal queue endpoint")
 
     while True:
-        result = client.brpop(queue_name, timeout=5)
-        if result is None:
-            continue
+        job: dict[str, Any] | None = None
 
-        _, payload = result
         try:
-            job = json.loads(payload)
-            conn = db_connection()
-            try:
-                video_worker.process_scan_job(job, conn)
-                conn.commit()
-            except Exception as proc_error:  # noqa: BLE001
-                conn.rollback()
-                if "scan_id" in job:
-                    video_worker.mark_scan_invalid(int(job["scan_id"]), conn)
-                    conn.commit()
-                raise proc_error
-            finally:
-                conn.close()
+            job = video_worker.fetch_next_job()
+            if job is None:
+                time.sleep(POLL_INTERVAL_SECONDS)
+                continue
+
+            video_worker.process_scan_job(job)
             print(f"[worker-runner] completed scan_id={job.get('scan_id')}")
-        except json.JSONDecodeError:
-            print(f"[worker-runner] invalid payload: {payload}")
         except Exception as exc:  # noqa: BLE001
             print(f"[worker-runner] job failed: {exc}")
-            time.sleep(1)
+
+            try:
+                if isinstance(job, dict) and "scan_id" in job and "organization_id" in job:
+                    video_worker.mark_scan_invalid(
+                        int(job["scan_id"]),
+                        int(job["organization_id"]),
+                        str(exc),
+                    )
+            except Exception as mark_exc:  # noqa: BLE001
+                print(f"[worker-runner] failed to mark scan invalid: {mark_exc}")
+
+            time.sleep(POLL_INTERVAL_SECONDS)
 
 
 if __name__ == "__main__":

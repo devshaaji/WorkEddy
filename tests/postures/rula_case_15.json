@@ -1,0 +1,21 @@
+{
+    "name": "rula_case_15_wrist_15",
+    "model": "rula",
+    "inputs": {
+        "upper_arm_angle": 20,
+        "lower_arm_angle": 80,
+        "wrist_angle": 15,
+        "neck_angle": 10,
+        "trunk_angle": 10,
+        "leg_score": 1,
+        "load_weight": 0
+    },
+    "expected_score": 2,
+    "expected_raw_score": 2,
+    "expected_normalized_score": 28.57,
+    "expected_risk_level": "Low - Acceptable posture",
+    "expected_risk_category": "low",
+    "expected_action_level_code": 1,
+    "expected_action_level_label": "Action Level 1: Posture acceptable",
+    "expected_algorithm_version": "rula_official_v1"
+}

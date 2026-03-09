@@ -1,75 +1,106 @@
-version: '3.9'
-
 services:
   nginx:
     image: nginx:1.27-alpine
     ports:
       - "8080:80"
     volumes:
-      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./api/public:/var/www/html/public:ro
+      - ./infrastructure/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./public:/var/www/html/public:ro
+      - storage_data:/storage:ro
     depends_on:
       - api
 
   api:
+    image: workeddy-app:local
     build:
-      context: ./api
+      context: .
       dockerfile: Dockerfile
     working_dir: /var/www/html
+    command: ["php-fpm", "-F"]
     volumes:
-      - ./api:/var/www/html
-      - ./storage:/storage
+      - .:/var/www/html                       # live-reload project code
+      - vendor_data:/var/www/html/vendor      # preserve image-built vendor (not overwritten by host mount)
+      - storage_data:/storage                 # shared upload storage with worker
+    env_file: .env
     environment:
       APP_ENV: local
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: workeddy
-      DB_USER: workeddy
-      DB_PASS: workeddy
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: change-me-in-production
-      JWT_TTL_SECONDS: 3600
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  seed:
+    image: workeddy-app:local
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - vendor_data:/var/www/html/vendor
+      - storage_data:/storage
+    env_file: .env
+    environment:
+      APP_ENV: local
+      DB_HOST: mysql
+      DB_PORT: 3306
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    command: ["php", "scripts/seed.php", "run"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      api:
+        condition: service_started
+    profiles:
+      - ops
 
   worker:
     build:
-      context: ./workers
-      dockerfile: Dockerfile
-    working_dir: /app
+      context: .
+      dockerfile: infrastructure/docker/worker.dockerfile
     volumes:
-      - ./workers:/app
-      - ./storage:/storage
+      - ./workers:/app/workers
+      - ./ml:/app/ml
+      - storage_data:/storage                 # same volume as api service
+    env_file: .env
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: workeddy
-      DB_USER: workeddy
-      DB_PASS: workeddy
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      WORKER_API_BASE_URL: http://nginx
     depends_on:
-      - mysql
-      - redis
+      nginx:
+        condition: service_started
+    restart: unless-stopped
 
   mysql:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: workeddy
-      MYSQL_USER: workeddy
-      MYSQL_PASSWORD: workeddy
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${DB_NAME:-workeddy}
+      MYSQL_USER: ${DB_USER:-workeddy}
+      MYSQL_PASSWORD: ${DB_PASS:-workeddy}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:-rootsecret}
     ports:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "/etc/redis/redis.conf"]
     ports:
       - "6380:6379"
+    volumes:
+      - ./infrastructure/queue/redis.conf:/etc/redis/redis.conf:ro
 
 volumes:
   mysql_data:
+  vendor_data:    # PHP Composer dependencies (built inside image, not overridden by host)
+  storage_data:   # Shared upload/processed file storage (api writes, worker reads)

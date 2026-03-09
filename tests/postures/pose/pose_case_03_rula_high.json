@@ -1,0 +1,155 @@
+{
+    "name": "pose_case_03_rula_high",
+    "model": "rula",
+    "landmarks": [
+        {
+            "x": 0.66,
+            "y": 0.38
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.6,
+            "y": 0.54
+        },
+        {
+            "x": 0.7,
+            "y": 0.54
+        },
+        {
+            "x": 0.68,
+            "y": 0.5
+        },
+        {
+            "x": 0.82,
+            "y": 0.5
+        },
+        {
+            "x": 0.78,
+            "y": 0.45
+        },
+        {
+            "x": 0.92,
+            "y": 0.45
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.46,
+            "y": 0.74
+        },
+        {
+            "x": 0.54,
+            "y": 0.74
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        }
+    ],
+    "expected_metrics": {
+        "trunk_angle": 36.87,
+        "neck_angle": 33.29,
+        "upper_arm_angle": 67.5,
+        "lower_arm_angle": 175.93,
+        "wrist_angle": 26.57,
+        "leg_score": 1,
+        "shoulder_elevation_duration": 0,
+        "repetition_count": 1,
+        "processing_confidence": 1
+    },
+    "expected_score": 4,
+    "expected_risk_category": "moderate",
+    "expected_normalized_score": 57.14,
+    "expected_action_level_code": 2,
+    "expected_action_level_label": "Action Level 2: Further investigation, change may be needed",
+    "expected_algorithm_version": "rula_official_v1"
+}

@@ -1,0 +1,25 @@
+{
+    "name": "reba_case_30_extreme_posture",
+    "model": "reba",
+    "inputs": {
+        "trunk_angle": 90,
+        "neck_angle": 40,
+        "upper_arm_angle": 130,
+        "lower_arm_angle": 40,
+        "wrist_angle": 30,
+        "leg_score": 2,
+        "load_weight": 20,
+        "coupling": "unacceptable",
+        "static_posture": true,
+        "repetitive": true,
+        "rapid_change": true
+    },
+    "expected_score": 13,
+    "expected_raw_score": 13,
+    "expected_normalized_score": 86.67,
+    "expected_risk_level": "Very High - Implement change now",
+    "expected_risk_category": "high",
+    "expected_action_level_code": 4,
+    "expected_action_level_label": "Action Level 4: Very high risk, implement change now",
+    "expected_algorithm_version": "reba_official_v1"
+}
