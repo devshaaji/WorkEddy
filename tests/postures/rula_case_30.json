@@ -1,0 +1,24 @@
+{
+    "name": "rula_case_30_extreme_posture",
+    "model": "rula",
+    "inputs": {
+        "upper_arm_angle": 135,
+        "lower_arm_angle": 30,
+        "wrist_angle": 25,
+        "wrist_twist": true,
+        "neck_angle": 45,
+        "trunk_angle": 85,
+        "leg_score": 2,
+        "load_weight": 18,
+        "static_posture": true,
+        "repetitive": true
+    },
+    "expected_score": 7,
+    "expected_raw_score": 7,
+    "expected_normalized_score": 100,
+    "expected_risk_level": "Very High - Investigate and implement change immediately",
+    "expected_risk_category": "high",
+    "expected_action_level_code": 4,
+    "expected_action_level_label": "Action Level 4: Investigate and implement change immediately",
+    "expected_algorithm_version": "rula_official_v1"
+}

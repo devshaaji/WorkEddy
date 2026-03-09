@@ -1,0 +1,155 @@
+{
+    "name": "pose_case_10_reba_asymmetric",
+    "model": "reba",
+    "landmarks": [
+        {
+            "x": 0.59,
+            "y": 0.35
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.53,
+            "y": 0.49
+        },
+        {
+            "x": 0.64,
+            "y": 0.47
+        },
+        {
+            "x": 0.6,
+            "y": 0.56
+        },
+        {
+            "x": 0.74,
+            "y": 0.52
+        },
+        {
+            "x": 0.71,
+            "y": 0.53
+        },
+        {
+            "x": 0.84,
+            "y": 0.47
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.47,
+            "y": 0.72
+        },
+        {
+            "x": 0.55,
+            "y": 0.7
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        },
+        {
+            "x": 0.5,
+            "y": 0.5
+        }
+    ],
+    "expected_metrics": {
+        "trunk_angle": 18.06,
+        "neck_angle": 15.86,
+        "upper_arm_angle": 125.78,
+        "lower_arm_angle": 123.31,
+        "wrist_angle": 20.91,
+        "leg_score": 1,
+        "shoulder_elevation_duration": 0,
+        "repetition_count": 1,
+        "processing_confidence": 1
+    },
+    "expected_score": 5,
+    "expected_risk_category": "moderate",
+    "expected_normalized_score": 33.33,
+    "expected_action_level_code": 2,
+    "expected_action_level_label": "Action Level 2: Medium risk, investigate and implement change",
+    "expected_algorithm_version": "reba_official_v1"
+}

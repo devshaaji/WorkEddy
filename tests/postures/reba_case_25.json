@@ -1,0 +1,22 @@
+{
+    "name": "reba_case_25_coupling_fair",
+    "model": "reba",
+    "inputs": {
+        "trunk_angle": 25,
+        "neck_angle": 15,
+        "upper_arm_angle": 45,
+        "lower_arm_angle": 80,
+        "wrist_angle": 10,
+        "leg_score": 1,
+        "load_weight": 8,
+        "coupling": "fair"
+    },
+    "expected_score": 4,
+    "expected_raw_score": 4,
+    "expected_normalized_score": 26.67,
+    "expected_risk_level": "Medium - Investigate and implement change",
+    "expected_risk_category": "moderate",
+    "expected_action_level_code": 2,
+    "expected_action_level_label": "Action Level 2: Medium risk, investigate and implement change",
+    "expected_algorithm_version": "reba_official_v1"
+}
