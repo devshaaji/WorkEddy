@@ -45,7 +45,8 @@ final class WorkerController
             (int) $body['organization_id'],
             (int) $body['scan_id'],
             $body['metrics'],
-            isset($body['model']) ? (string) $body['model'] : null
+            isset($body['model']) ? (string) $body['model'] : null,
+            isset($body['pose_video_path']) ? (string) $body['pose_video_path'] : null
         );
 
         Response::json(['data' => $scan]);

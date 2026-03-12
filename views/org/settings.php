@@ -179,9 +179,9 @@ ob_start();
         <div class="row g-3 align-items-end">
           <div class="col-md-4">
             <label class="form-label" for="retentionDays">Video Retention (days)</label>
-            <input class="form-control" id="retentionDays" type="number" min="1" max="365"
+            <input class="form-control" id="retentionDays" type="number" min="0" max="3650"
                    x-model.number="form.video_retention_days" placeholder="30">
-            <small class="text-muted">After this period, raw video files are deleted. Analysis data is kept.</small>
+            <small class="text-muted">After this period, raw video files are deleted. Use 0 to keep videos indefinitely.</small>
           </div>
           <div class="col-md-8">
             <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">

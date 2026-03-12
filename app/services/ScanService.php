@@ -89,7 +89,13 @@ final class ScanService
         return ['scan_id' => $scanId, 'status' => 'processing'];
     }
 
-    public function completeVideoScanFromWorker(int $organizationId, int $scanId, array $metrics, ?string $model = null): array
+    public function completeVideoScanFromWorker(
+        int $organizationId,
+        int $scanId,
+        array $metrics,
+        ?string $model = null,
+        ?string $poseVideoPath = null
+    ): array
     {
         if ($scanId <= 0) {
             throw new RuntimeException('scan_id must be a positive integer');
@@ -115,7 +121,15 @@ final class ScanService
         $this->assessmentEngine->validateCombination($scanModel, 'video');
         $score = $this->assessmentEngine->assess($scanModel, $metrics);
 
-        $this->scans->completeVideoProcessing($organizationId, $scanId, $scanModel, $score, $metrics);
+        $resolvedPoseVideoPath = null;
+        if ($poseVideoPath !== null && trim($poseVideoPath) !== '') {
+            $resolvedPoseVideoPath = trim($poseVideoPath);
+            if (!str_starts_with($resolvedPoseVideoPath, '/storage/uploads/videos/')) {
+                throw new RuntimeException('pose_video_path must be under /storage/uploads/videos/');
+            }
+        }
+
+        $this->scans->completeVideoProcessing($organizationId, $scanId, $scanModel, $score, $metrics, $resolvedPoseVideoPath);
         $this->persistRecommendations($organizationId, $scanId, $scanModel, $metrics, $score);
         $this->applyPrivacyPolicyAfterProcessing($organizationId, $scanId, $scan);
         $this->invalidateScanLists($organizationId);

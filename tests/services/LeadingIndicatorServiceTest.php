@@ -21,6 +21,7 @@ final class LeadingIndicatorServiceTest extends TestCase
                 $this->stringContains('INSERT INTO worker_leading_indicators'),
                 $this->callback(function (array $params): bool {
                     return $params['shift_date'] === '2026-03-11'
+                        && $params['checkin_type'] === 'post_shift'
                         && $params['discomfort_level'] === 6
                         && $params['fatigue_level'] === 5
                         && $params['task_rotation_quality'] === 'fair'
@@ -49,6 +50,7 @@ final class LeadingIndicatorServiceTest extends TestCase
         $this->assertSame(10, $result['organization_id']);
         $this->assertSame(77, $result['user_id']);
         $this->assertSame(12, $result['task_id']);
+        $this->assertSame('post_shift', $result['checkin_type']);
     }
 
     public function testSubmitRejectsOutOfRangeValues(): void
@@ -94,5 +96,26 @@ final class LeadingIndicatorServiceTest extends TestCase
         $this->assertSame(8, $summary['total_checkins']);
         $this->assertSame(4.25, $summary['avg_discomfort']);
         $this->assertSame(2, $summary['high_psychosocial_count']);
+    }
+
+    public function testSubmitRejectsInvalidCheckinType(): void
+    {
+        $conn = $this->createMock(Connection::class);
+        $service = new LeadingIndicatorService(new LeadingIndicatorRepository($conn));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('checkin_type must be one of: pre_shift, mid_shift, post_shift');
+
+        $service->submit(10, 77, [
+            'checkin_type' => 'weekly',
+            'shift_date' => '2026-03-11',
+            'discomfort_level' => 5,
+            'fatigue_level' => 4,
+            'micro_breaks_taken' => 0,
+            'recovery_minutes' => 0,
+            'overtime_minutes' => 0,
+            'task_rotation_quality' => 'fair',
+            'psychosocial_load' => 'moderate',
+        ]);
     }
 }

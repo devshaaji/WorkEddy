@@ -134,6 +134,7 @@ def process_scan_job(job: dict[str, Any]) -> None:
     organization_id = int(job["organization_id"])
     video_path = str(job["video_path"])
     model = str(job.get("model", "reba")).lower()
+    multi_person_policy = str(os.getenv("VIDEO_MULTI_PERSON_POLICY", "dominant_subject")).strip().lower()
 
     if model == "niosh":
         raise ValueError("NIOSH model does not support video scans")
@@ -142,18 +143,28 @@ def process_scan_job(job: dict[str, Any]) -> None:
     pose_detector = _pose_detector_module()
 
     frame_extractor.sample_frame_stats(video_path=video_path, sample_every_n=4)
-    pose_metrics = pose_detector.estimate_pose_metrics(video_path=video_path, target_fps=10.0)
+    pose_metrics = pose_detector.estimate_pose_metrics(
+        video_path=video_path,
+        target_fps=10.0,
+        generate_visualization=True,
+        multi_person_policy=multi_person_policy,
+    )
 
     metrics_for_scoring = build_scoring_metrics(pose_metrics)
 
+    payload: dict[str, Any] = {
+        "scan_id": scan_id,
+        "organization_id": organization_id,
+        "model": model,
+        "metrics": metrics_for_scoring,
+    }
+    pose_video_path = str(pose_metrics.get("pose_video_path", "")).strip()
+    if pose_video_path.startswith("/storage/uploads/videos/"):
+        payload["pose_video_path"] = pose_video_path
+
     _api_post(
         COMPLETE_ENDPOINT,
-        {
-            "scan_id": scan_id,
-            "organization_id": organization_id,
-            "model": model,
-            "metrics": metrics_for_scoring,
-        },
+        payload,
     )
 
 

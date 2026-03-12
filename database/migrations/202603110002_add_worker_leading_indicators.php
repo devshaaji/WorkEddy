@@ -25,6 +25,7 @@ return new class implements MigrationInterface {
                 organization_id BIGINT UNSIGNED NOT NULL,
                 user_id BIGINT UNSIGNED NOT NULL,
                 task_id BIGINT UNSIGNED NULL,
+                checkin_type ENUM("pre_shift","mid_shift","post_shift") NOT NULL DEFAULT "post_shift",
                 shift_date DATE NOT NULL,
                 discomfort_level TINYINT UNSIGNED NOT NULL,
                 fatigue_level TINYINT UNSIGNED NOT NULL,

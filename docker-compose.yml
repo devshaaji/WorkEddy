@@ -74,6 +74,51 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  live-worker:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/live-worker.dockerfile
+    volumes:
+      - ./workers/live-worker:/app/workers/live-worker
+      - ./ml:/app/ml
+      - storage_data:/storage
+    env_file: .env
+    environment:
+      WORKER_API_BASE_URL: http://nginx
+      LIVE_POSE_ENGINE: ${LIVE_POSE_ENGINE:-yolo26}
+      LIVE_MULTI_PERSON_MODE: ${LIVE_MULTI_PERSON_MODE:-false}
+      LIVE_YOLO_MODEL_VARIANT: ${LIVE_YOLO_MODEL_VARIANT:-yolo26n-pose}
+      LIVE_MEDIAPIPE_MODEL_VARIANT: ${LIVE_MEDIAPIPE_MODEL_VARIANT:-pose_landmarker_lite}
+      LIVE_TARGET_FPS: ${LIVE_TARGET_FPS:-5}
+      LIVE_BATCH_WINDOW_MS: ${LIVE_BATCH_WINDOW_MS:-500}
+      LIVE_MAX_E2E_LATENCY_MS: ${LIVE_MAX_E2E_LATENCY_MS:-2000}
+      LIVE_WORKER_POLL_INTERVAL_SECONDS: ${LIVE_WORKER_POLL_INTERVAL_SECONDS:-1}
+      LIVE_WORKER_COUNT: ${LIVE_WORKER_COUNT:-1}
+    depends_on:
+      nginx:
+        condition: service_started
+    restart: unless-stopped
+
+  video-retention:
+    image: workeddy-app:local
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - vendor_data:/var/www/html/vendor
+      - storage_data:/storage
+    env_file: .env
+    environment:
+      APP_ENV: local
+      DB_HOST: mysql
+      DB_PORT: 3306
+    command: ["sh", "-lc", "while true; do php scripts/cleanup-videos.php; sleep $${VIDEO_CLEANUP_INTERVAL_SECONDS:-86400}; done"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      api:
+        condition: service_started
+    restart: unless-stopped
+
   mysql:
     image: mysql:8.4
     environment:

@@ -39,6 +39,9 @@ final class LeadingIndicatorService
             'avg_micro_breaks' => isset($summary['avg_micro_breaks']) ? (float) $summary['avg_micro_breaks'] : null,
             'avg_recovery_minutes' => isset($summary['avg_recovery_minutes']) ? (float) $summary['avg_recovery_minutes'] : null,
             'avg_overtime_minutes' => isset($summary['avg_overtime_minutes']) ? (float) $summary['avg_overtime_minutes'] : null,
+            'pre_shift_count' => (int) ($summary['pre_shift_count'] ?? 0),
+            'mid_shift_count' => (int) ($summary['mid_shift_count'] ?? 0),
+            'post_shift_count' => (int) ($summary['post_shift_count'] ?? 0),
             'high_psychosocial_count' => (int) ($summary['high_psychosocial_count'] ?? 0),
             'poor_rotation_count' => (int) ($summary['poor_rotation_count'] ?? 0),
             'recent_entries' => $this->indicators->recentByOrganization($organizationId, min($days, 14)),
@@ -62,6 +65,10 @@ final class LeadingIndicatorService
     private function normalizePayload(array $payload): array
     {
         $taskId = isset($payload['task_id']) && $payload['task_id'] !== '' ? (int) $payload['task_id'] : null;
+        $checkinType = strtolower(trim((string) ($payload['checkin_type'] ?? 'post_shift')));
+        if (!in_array($checkinType, ['pre_shift', 'mid_shift', 'post_shift'], true)) {
+            throw new RuntimeException('checkin_type must be one of: pre_shift, mid_shift, post_shift');
+        }
 
         $shiftDate = trim((string) ($payload['shift_date'] ?? ''));
         if ($shiftDate === '') {
@@ -94,6 +101,7 @@ final class LeadingIndicatorService
 
         return [
             'task_id' => $taskId,
+            'checkin_type' => $checkinType,
             'shift_date' => $shiftDate,
             'discomfort_level' => $discomfort,
             'fatigue_level' => $fatigue,

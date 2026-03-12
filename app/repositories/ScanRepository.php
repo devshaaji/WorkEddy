@@ -58,6 +58,40 @@ final class ScanRepository
         }
         unset($control);
 
+        $actions = $this->db->fetchAllAssociative(
+            'SELECT ca.*,
+                    assignee.name AS assigned_to_name,
+                    creator.name AS created_by_name
+             FROM control_actions ca
+             LEFT JOIN users assignee ON assignee.id = ca.assigned_to_user_id
+             LEFT JOIN users creator ON creator.id = ca.created_by_user_id
+             WHERE ca.organization_id = :org_id
+               AND ca.source_scan_id = :scan_id
+             ORDER BY ca.id DESC',
+            [
+                'org_id' => $organizationId,
+                'scan_id' => $scanId,
+            ]
+        );
+        $row['control_actions'] = is_array($actions) ? $actions : [];
+
+        foreach ($row['control_actions'] as &$action) {
+            $feedback = [];
+            if (is_string($action['worker_feedback_json'] ?? null) && $action['worker_feedback_json'] !== '') {
+                $feedback = json_decode((string) $action['worker_feedback_json'], true) ?: [];
+            }
+            $action['worker_feedback'] = is_array($feedback) ? $feedback : [];
+
+            $summary = [];
+            if (is_string($action['verification_summary_json'] ?? null) && $action['verification_summary_json'] !== '') {
+                $summary = json_decode((string) $action['verification_summary_json'], true) ?: [];
+            }
+            $action['verification_summary'] = is_array($summary) ? $summary : [];
+
+            unset($action['worker_feedback_json'], $action['verification_summary_json']);
+        }
+        unset($action);
+
         return $row;
     }
 
@@ -112,6 +146,32 @@ final class ScanRepository
         }
 
         return $this->db->fetchAllAssociative($sql, $params);
+    }
+
+    public function latestByUser(int $organizationId, int $userId, ?string $status = 'completed'): ?array
+    {
+        $sql = 'SELECT s.id, s.organization_id, s.user_id, s.task_id, s.scan_type, s.model,
+                       s.raw_score, s.normalized_score, s.risk_category,
+                       s.status, s.video_path, s.error_message, s.created_at, s.parent_scan_id,
+                       sr.score AS result_score, sr.risk_level, sr.recommendation, sr.algorithm_version
+                FROM scans s
+                LEFT JOIN scan_results sr ON sr.scan_id = s.id
+                WHERE s.organization_id = :org_id
+                  AND s.user_id = :user_id';
+        $params = [
+            'org_id' => $organizationId,
+            'user_id' => $userId,
+        ];
+
+        if ($status !== null && trim($status) !== '') {
+            $sql .= ' AND s.status = :status';
+            $params['status'] = $status;
+        }
+
+        $sql .= ' ORDER BY s.id DESC LIMIT 1';
+        $row = $this->db->fetchAssociative($sql, $params);
+
+        return $row ?: null;
     }
 
     /**
@@ -212,9 +272,16 @@ final class ScanRepository
         );
     }
 
-    public function completeVideoProcessing(int $organizationId, int $scanId, string $model, array $score, array $metrics): void
+    public function completeVideoProcessing(
+        int $organizationId,
+        int $scanId,
+        string $model,
+        array $score,
+        array $metrics,
+        ?string $poseVideoPath = null
+    ): void
     {
-        $this->db->transactional(function () use ($organizationId, $scanId, $model, $score, $metrics): void {
+        $this->db->transactional(function () use ($organizationId, $scanId, $model, $score, $metrics, $poseVideoPath): void {
             $scan = $this->findWorkerScan($organizationId, $scanId);
             if (($scan['scan_type'] ?? '') !== 'video') {
                 throw new RuntimeException('Only video scans can be completed by worker callbacks');
@@ -226,22 +293,33 @@ final class ScanRepository
             $this->db->executeStatement('DELETE FROM scan_results WHERE scan_id = :scan_id', ['scan_id' => $scanId]);
             $this->insertResult($scanId, $model, $score);
 
-            $this->db->executeStatement(
-                'UPDATE scans
+            $sql = 'UPDATE scans
                  SET raw_score = :raw,
                      normalized_score = :norm,
                      risk_category = :cat,
                      status = "completed",
-                     error_message = NULL
+                     error_message = NULL';
+
+            $params = [
+                'raw' => $score['raw_score'],
+                'norm' => $score['normalized_score'],
+                'cat' => $score['risk_category'],
+                'org_id' => $organizationId,
+                'scan_id' => $scanId,
+            ];
+
+            if ($poseVideoPath !== null && trim($poseVideoPath) !== '') {
+                $sql .= ', video_path = :pose_video_path';
+                $params['pose_video_path'] = trim($poseVideoPath);
+            }
+
+            $sql .= '
                  WHERE organization_id = :org_id
-                   AND id = :scan_id',
-                [
-                    'raw' => $score['raw_score'],
-                    'norm' => $score['normalized_score'],
-                    'cat' => $score['risk_category'],
-                    'org_id' => $organizationId,
-                    'scan_id' => $scanId,
-                ]
+                   AND id = :scan_id';
+
+            $this->db->executeStatement(
+                $sql,
+                $params
             );
 
             $this->upsertUsageRecord($organizationId, $scanId, 'video_scan');

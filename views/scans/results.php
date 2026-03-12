@@ -124,6 +124,7 @@ ob_start();
               <th>Cost</th>
               <th>Deploy</th>
               <th>Throughput Impact</th>
+              <th>Action</th>
             </tr>
             </thead>
             <tbody>
@@ -159,6 +160,99 @@ ob_start();
                 <td class="text-capitalize" x-text="c.implementation_cost"></td>
                 <td x-text="c.time_to_deploy_days + 'd'"></td>
                 <td class="text-capitalize" x-text="c.throughput_impact"></td>
+                <td>
+                  <template x-if="actionForControl(c.id)">
+                    <span class="badge text-capitalize"
+                          :class="actionForControl(c.id).status === 'verified' ? 'badge-soft-success' : 'badge-soft-secondary'"
+                          x-text="actionForControl(c.id).status"></span>
+                  </template>
+                  <template x-if="!actionForControl(c.id)">
+                    <button class="btn btn-outline-primary btn-sm"
+                            x-show="canManageActions"
+                            @click="createControlAction(c)"
+                            :disabled="actionBusy">
+                      <span x-show="actionBusy" class="spinner-border spinner-border-sm me-1"></span>
+                      Create Action
+                    </button>
+                  </template>
+                </td>
+              </tr>
+            </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4" x-show="controlActions && controlActions.length > 0" x-cloak>
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-link-45deg text-primary"></i>
+          <h6 class="mb-0 fw-semibold">Control Action Evidence Chain</h6>
+        </div>
+        <span class="badge badge-soft-secondary" x-text="controlActions.length + ' actions'"></span>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+            <tr>
+              <th>Control</th>
+              <th>Status</th>
+              <th>Owner</th>
+              <th>Due</th>
+              <th>Verification</th>
+              <th>Workflow</th>
+            </tr>
+            </thead>
+            <tbody>
+            <template x-for="a in controlActions" :key="a.id">
+              <tr>
+                <td>
+                  <div class="fw-semibold" x-text="a.control_title"></div>
+                  <div class="text-muted text-xs" x-text="'Code: ' + a.control_code"></div>
+                </td>
+                <td>
+                  <span class="badge text-capitalize"
+                        :class="a.status === 'verified' ? 'badge-soft-success' : (a.status === 'cancelled' ? 'badge-soft-danger' : 'badge-soft-warning')"
+                        x-text="a.status"></span>
+                </td>
+                <td x-text="a.assigned_to_name || 'Unassigned'"></td>
+                <td x-text="a.target_due_date || '—'"></td>
+                <td>
+                  <template x-if="a.verification_summary && a.verification_summary.improvement_proof">
+                    <div class="text-xs">
+                      <div>
+                        Risk delta:
+                        <strong x-text="(a.verification_summary.improvement_proof.risk_reduction_percent ?? 0) + '%'"></strong>
+                      </div>
+                      <div class="text-muted">
+                        Scan:
+                        <span x-text="a.verification_scan_id || '—'"></span>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="!a.verification_summary || !a.verification_summary.improvement_proof">
+                    <span class="text-muted text-xs">Pending verification</span>
+                  </template>
+                </td>
+                <td>
+                  <div class="d-flex flex-wrap gap-1" x-show="canManageActions">
+                    <button class="btn btn-outline-secondary btn-sm"
+                            x-show="a.status === 'planned'"
+                            @click="updateActionStatus(a.id, 'in_progress')">Start</button>
+                    <button class="btn btn-outline-primary btn-sm"
+                            x-show="a.status === 'in_progress'"
+                            @click="updateActionStatus(a.id, 'implemented')">Implemented</button>
+                    <button class="btn btn-outline-success btn-sm"
+                            x-show="a.status === 'implemented' || a.status === 'in_progress'"
+                            @click="verifyActionPrompt(a.id)">Verify</button>
+                    <button class="btn btn-outline-danger btn-sm"
+                            x-show="a.status !== 'verified' && a.status !== 'cancelled'"
+                            @click="updateActionStatus(a.id, 'cancelled')">Cancel</button>
+                  </div>
+                  <span class="text-muted text-xs" x-show="!canManageActions">View only</span>
+                </td>
               </tr>
             </template>
             </tbody>
@@ -190,12 +284,14 @@ ob_start();
   <div class="card mb-4" x-show="scan && scan.video_path && !loading" x-cloak>
     <div class="card-header d-flex align-items-center gap-2">
       <i class="bi bi-camera-video text-primary"></i>
-      <h6 class="mb-0 fw-semibold">Uploaded Video</h6>
+      <h6 class="mb-0 fw-semibold">Pose Detection Video</h6>
     </div>
     <div class="card-body p-0">
       <video class="w-100 rounded-bottom" style="max-height:400px;background:#000" controls preload="metadata"
              :src="(scan && scan.video_path)
-                ? ('/storage/videos/' + String(scan.video_path).split('/').pop())
+                ? (String(scan.video_path).startsWith('/storage/uploads/videos/')
+                    ? String(scan.video_path).replace('/storage/uploads/videos/', '/storage/videos/')
+                    : String(scan.video_path))
                 : ''">
         Your browser does not support video playback.
       </video>

@@ -146,8 +146,10 @@ return static function (FastRoute\RouteCollector $r) use ($view, $auth, $guest):
     $r->addRoute('GET', '/tasks/{id:\d+}',    $auth('views/tasks/view.php'));
     $r->addRoute('GET', '/scans/new-manual',  $auth('views/scans/new-manual.php'));
     $r->addRoute('GET', '/scans/new-video',   $auth('views/scans/new-video.php'));
+    $r->addRoute('GET', '/scans/live-capture',$auth('views/scans/live-capture.php', ['admin', 'supervisor', 'observer']));
     $r->addRoute('GET', '/scans/compare',     $auth('views/scans/advanced-compare.php'));
     $r->addRoute('GET', '/leading-indicators/check-in', $auth('views/org/leading-indicators.php'));
+    $r->addRoute('GET', '/copilot',           $auth('views/copilot/index.php', ['admin', 'supervisor', 'observer']));
     $r->addRoute('GET', '/scans/{id:\d+}',    $auth('views/scans/results.php'));
     $r->addRoute('GET', '/scans/{id:\d+}/compare', $auth('views/scans/compare.php'));
     $r->addRoute('GET', '/scans/{id:\d+}/observe',  $auth('views/observer/rate.php', ['admin', 'observer']));

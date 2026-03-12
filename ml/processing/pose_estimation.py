@@ -18,7 +18,6 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-# â”€â”€ Landmark index constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Defined locally so we don't depend on the removed mp.solutions legacy API.
 # Indices are identical to the old mp.solutions.pose.PoseLandmark enum.
 class _PL:
@@ -35,7 +34,18 @@ class _PL:
     RIGHT_HIP       = 24
 
 
-# â”€â”€ Locate the pose landmarker model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+_POSE_CONNECTIONS: tuple[tuple[int, int], ...] = (
+    (_PL.LEFT_SHOULDER, _PL.RIGHT_SHOULDER),
+    (_PL.LEFT_HIP, _PL.RIGHT_HIP),
+    (_PL.LEFT_SHOULDER, _PL.LEFT_HIP),
+    (_PL.RIGHT_SHOULDER, _PL.RIGHT_HIP),
+    (_PL.LEFT_SHOULDER, _PL.LEFT_ELBOW),
+    (_PL.LEFT_ELBOW, _PL.LEFT_WRIST),
+    (_PL.RIGHT_SHOULDER, _PL.RIGHT_ELBOW),
+    (_PL.RIGHT_ELBOW, _PL.RIGHT_WRIST),
+)
+
+
 _MODEL_CANDIDATES = [
     Path("/opt/mediapipe/pose_landmarker_lite.task"),                                   # Docker (outside bind-mount)
     Path("/app/ml/models/pose_landmarker_lite.task"),                                 # Docker (fallback)
@@ -49,19 +59,17 @@ if _MODEL_PATH is None:
         "Expected at one of: " + str([str(p) for p in _MODEL_CANDIDATES])
     )
 
-# â”€â”€ Landmarker options (built once at import time) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _OPTIONS = mp.tasks.vision.PoseLandmarkerOptions(
     base_options=mp.tasks.BaseOptions(model_asset_path=_MODEL_PATH),
     running_mode=mp.tasks.vision.RunningMode.IMAGE,
-    num_poses=1,
+    # Enable multi-person detection so caller policy can reject or auto-select.
+    num_poses=4,
     min_pose_detection_confidence=0.5,
     min_pose_presence_confidence=0.5,
     min_tracking_confidence=0.5,
     output_segmentation_masks=False,
 )
 
-
-# â”€â”€ Geometry helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _angle_from_vertical(dx: float, dy: float) -> float:
     """Return the angle (degrees) between a body-segment vector and the vertical axis."""
@@ -96,12 +104,85 @@ def _vis(lm) -> float:
     return float(getattr(lm, "visibility", 1.0) or 1.0)
 
 
-# â”€â”€ Main entry point â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+def _dominant_pose_index(pose_landmarks: list[list]) -> int:
+    """Pick dominant subject index using torso area * landmark visibility."""
+    best_idx = 0
+    best_score = -1.0
+
+    for idx, lms in enumerate(pose_landmarks):
+        if len(lms) <= _PL.RIGHT_HIP:
+            continue
+
+        ls = lms[_PL.LEFT_SHOULDER]
+        rs = lms[_PL.RIGHT_SHOULDER]
+        lh = lms[_PL.LEFT_HIP]
+        rh = lms[_PL.RIGHT_HIP]
+
+        shoulder_width = max(0.0, abs(float(ls.x) - float(rs.x)))
+        torso_height = max(0.0, abs(float(((ls.y + rs.y) / 2.0) - ((lh.y + rh.y) / 2.0))))
+        area = shoulder_width * torso_height
+
+        visibility = (_vis(ls) + _vis(rs) + _vis(lh) + _vis(rh)) / 4.0
+        score = area * visibility
+
+        if score > best_score:
+            best_score = score
+            best_idx = idx
+
+    return best_idx
+
+
+def _default_pose_video_path(video_path: str) -> str:
+    src = Path(video_path)
+    stem = src.stem or "scan"
+    return str(src.with_name(f"{stem}.pose.mp4"))
+
+
+def _draw_pose_overlay(frame: np.ndarray, lms, status: str = "") -> None:
+    h, w = frame.shape[:2]
+
+    for a, b in _POSE_CONNECTIONS:
+        if a >= len(lms) or b >= len(lms):
+            continue
+        p1 = lms[a]
+        p2 = lms[b]
+        x1, y1 = int(p1.x * w), int(p1.y * h)
+        x2, y2 = int(p2.x * w), int(p2.y * h)
+        cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+    tracked_points = {
+        _PL.NOSE,
+        _PL.LEFT_SHOULDER, _PL.RIGHT_SHOULDER,
+        _PL.LEFT_ELBOW, _PL.RIGHT_ELBOW,
+        _PL.LEFT_WRIST, _PL.RIGHT_WRIST,
+        _PL.LEFT_HIP, _PL.RIGHT_HIP,
+    }
+    for idx in tracked_points:
+        if idx >= len(lms):
+            continue
+        p = lms[idx]
+        x, y = int(p.x * w), int(p.y * h)
+        cv2.circle(frame, (x, y), 4, (0, 200, 255), -1)
+
+    if status:
+        cv2.putText(
+            frame,
+            status,
+            (16, 30),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (255, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
 
 def estimate_pose_metrics(
     video_path: str,
     sample_every_n: int | None = None,
     target_fps: float = 10.0,
+    generate_visualization: bool = False,
+    output_video_path: str | None = None,
+    multi_person_policy: str = "dominant_subject",
 ) -> dict[str, float | int]:
     """
     Process a video and return comprehensive ergonomic pose metrics.
@@ -127,12 +208,22 @@ def estimate_pose_metrics(
     if not cap.isOpened():
         raise RuntimeError(f"Cannot open video: {video_path}")
 
+    policy = multi_person_policy.strip().lower()
+    if policy not in {"dominant_subject", "reject"}:
+        raise ValueError("multi_person_policy must be 'dominant_subject' or 'reject'")
+
     # Determine frame-skip interval
+    native_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     if sample_every_n is not None:
         skip = sample_every_n
     else:
-        native_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         skip = max(1, round(native_fps / target_fps))
+
+    resolved_output_video_path: str | None = None
+    if generate_visualization:
+        resolved_output_video_path = output_video_path or _default_pose_video_path(video_path)
+        output_dir = Path(resolved_output_video_path).parent
+        output_dir.mkdir(parents=True, exist_ok=True)
 
     trunk_angles: list[float]     = []
     neck_angles: list[float]      = []
@@ -144,6 +235,9 @@ def estimate_pose_metrics(
     confidence_total              = 0.0
     confidence_count              = 0
     frame_idx                     = 0
+    multi_person_detected_frames  = 0
+    max_persons_detected          = 0
+    writer: cv2.VideoWriter | None = None
 
     with mp.tasks.vision.PoseLandmarker.create_from_options(_OPTIONS) as landmarker:
         try:
@@ -152,8 +246,18 @@ def estimate_pose_metrics(
                 if not ok:
                     break
 
+                if generate_visualization and writer is None and resolved_output_video_path is not None:
+                    frame_h, frame_w = frame.shape[:2]
+                    fps_for_output = native_fps if native_fps > 1.0 else max(1.0, target_fps)
+                    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+                    writer = cv2.VideoWriter(resolved_output_video_path, fourcc, fps_for_output, (frame_w, frame_h))
+                    if not writer.isOpened():
+                        raise RuntimeError(f"Cannot create pose visualization video: {resolved_output_video_path}")
+
                 frame_idx += 1
                 if frame_idx % skip != 0:
+                    if writer is not None:
+                        writer.write(frame)
                     continue
 
                 sampled_frames += 1
@@ -162,11 +266,34 @@ def estimate_pose_metrics(
                 result   = landmarker.detect(mp_image)
 
                 if not result.pose_landmarks:
+                    if writer is not None:
+                        _draw_pose_overlay(frame, [], f"Frame {frame_idx}: no pose detected")
+                        writer.write(frame)
                     continue
 
-                lms = result.pose_landmarks[0]   # list[NormalizedLandmark]
+                persons = result.pose_landmarks
+                person_count = len(persons)
+                max_persons_detected = max(max_persons_detected, person_count)
 
-                # â”€â”€ Landmarks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                chosen_idx = 0
+                if person_count > 1:
+                    multi_person_detected_frames += 1
+                    if policy == "reject":
+                        raise RuntimeError(
+                            "Multiple people detected in video. "
+                            "This scan is configured for single-person analysis."
+                        )
+                    chosen_idx = _dominant_pose_index(persons)
+
+                lms = persons[chosen_idx]   # list[NormalizedLandmark]
+
+                if writer is not None:
+                    status = f"Frame {frame_idx}: analysed"
+                    if person_count > 1:
+                        status += f" ({person_count} persons, dominant #{chosen_idx + 1})"
+                    _draw_pose_overlay(frame, lms, status)
+                    writer.write(frame)
+
                 ls   = lms[_PL.LEFT_SHOULDER]
                 rs   = lms[_PL.RIGHT_SHOULDER]
                 lh   = lms[_PL.LEFT_HIP]
@@ -180,37 +307,32 @@ def estimate_pose_metrics(
                 mid_shoulder = _midpoint(ls, rs)
                 mid_hip      = _midpoint(lh, rh)
 
-                # â”€â”€ Trunk flexion (torso vs vertical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 trunk_angle = _angle_from_vertical(
                     mid_shoulder[0] - mid_hip[0],
                     mid_shoulder[1] - mid_hip[1],
                 )
                 trunk_angles.append(float(trunk_angle))
 
-                # â”€â”€ Neck flexion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 neck_angle  = _angle_between_points(
                     (nose.x, nose.y), mid_shoulder, mid_hip,
                 )
                 neck_flexion = abs(180.0 - neck_angle) if neck_angle > 90 else neck_angle
                 neck_angles.append(float(neck_flexion))
 
-                # â”€â”€ Upper arm elevation (shoulder â†’ elbow vs vertical) â”€â”€â”€
                 l_upper = _angle_from_vertical(le.x - ls.x, le.y - ls.y)
                 r_upper = _angle_from_vertical(re.x - rs.x, re.y - rs.y)
                 upper_arm_angles.append(float((l_upper + r_upper) / 2.0))
 
-                # â”€â”€ Lower arm (elbow angle: shoulderâ€“elbowâ€“wrist) â”€â”€â”€â”€â”€â”€â”€â”€
                 l_lower = _angle_between_points(_pt(ls), _pt(le), _pt(lw))
                 r_lower = _angle_between_points(_pt(rs), _pt(re), _pt(rw))
                 lower_arm_angles.append(float((l_lower + r_lower) / 2.0))
 
-                # â”€â”€ Wrist deviation (elbowâ€“wrist vs vertical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 l_wrist  = _angle_from_vertical(lw.x - le.x, lw.y - le.y)
                 r_wrist  = _angle_from_vertical(rw.x - re.x, rw.y - re.y)
                 wrist_dev = abs(float((l_wrist + r_wrist) / 2.0) - 90.0)
                 wrist_angles.append(wrist_dev)
 
-                # Shoulder elevation heuristic: normalised y < 0.35 â†’ hands above shoulder
+                # Shoulder elevation heuristic: normalised y < 0.35 hands above shoulder
                 if mid_shoulder[1] < 0.35:
                     shoulder_elevated_frames += 1
 
@@ -221,6 +343,8 @@ def estimate_pose_metrics(
 
         finally:
             cap.release()
+            if writer is not None:
+                writer.release()
 
     if not trunk_angles:
         raise RuntimeError("No pose landmarks detected in sampled frames")
@@ -229,7 +353,7 @@ def estimate_pose_metrics(
     max_trunk_angle             = float(np.max(trunk_angles))
     shoulder_elevation_duration = shoulder_elevated_frames / max(1, sampled_frames)
 
-    # Count repetitions: each transition from â‰¥30Â° to <30Â° is one cycle
+    # Count repetitions: each transition from
     repetition_count = 0
     prev_high        = False
     for a in trunk_angles:
@@ -240,7 +364,7 @@ def estimate_pose_metrics(
 
     processing_confidence = confidence_total / max(1, confidence_count)
 
-    return {
+    metrics = {
         "max_trunk_angle":             round(max_trunk_angle, 2),
         "avg_trunk_angle":             round(avg_trunk_angle, 2),
         "neck_angle":                  round(float(np.mean(neck_angles)), 2)      if neck_angles      else 10.0,
@@ -250,4 +374,12 @@ def estimate_pose_metrics(
         "shoulder_elevation_duration": round(float(shoulder_elevation_duration), 4),
         "repetition_count":            repetition_count,
         "processing_confidence":       round(processing_confidence, 4),
+        "multi_person_detected_frames": int(multi_person_detected_frames),
+        "max_persons_detected": int(max_persons_detected),
+        "multi_person_policy": policy,
     }
+
+    if generate_visualization and resolved_output_video_path is not None:
+        metrics["pose_video_path"] = resolved_output_video_path
+
+    return metrics

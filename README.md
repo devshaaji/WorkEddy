@@ -26,6 +26,9 @@ Production-oriented implementation of WorkEddy aligned to `requirements.md` stac
 - Dashboard analytics
 - Observer rating API
 - Usage tracking for manual/video scans
+- Prescriptive control action lifecycle (recommendation -> action -> verification)
+- Worker coaching endpoint with multilingual tips (EN/ES/ZH/AR)
+- Scoped ergonomics copilot personas (supervisor, safety manager, engineer, auditor)
 
 ## API
 
@@ -40,6 +43,9 @@ Base URL: `/api/v1` (legacy unprefixed routes are also accepted).
 - `POST /scans/manual`, `GET /scans`, `GET /scans/{id}`
 - `GET /dashboard`
 - `POST /observer-rating`
+- `GET /control-actions`, `POST /control-actions/from-control`, `PUT /control-actions/{id}`, `POST /control-actions/{id}/verify`
+- `GET /worker/coaching`
+- `POST /copilot/{persona}`
 - `GET /health`
 - Internal worker endpoints: `POST /internal/worker/jobs/next`, `POST /internal/worker/scans/complete`, `POST /internal/worker/scans/fail` (token-authenticated)
 
@@ -58,6 +64,7 @@ Notes:
 - The API container now retries startup tasks and runs migrations automatically before `php-fpm` starts.
 - If `vendor/` is empty in the mounted volume, the API container runs `composer install` automatically.
 - The `seed` service reuses the same app image as `api` (`workeddy-app:local`) to avoid building a duplicate PHP image.
+- `video-retention` service runs `scripts/cleanup-videos.php` on a loop (`VIDEO_CLEANUP_INTERVAL_SECONDS`) to enforce retention continuously.
 
 ## Database Commands
 

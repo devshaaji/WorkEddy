@@ -1,14 +1,14 @@
-/**
- * WorkEddy – Alpine.js API client & page components.
+﻿/**
+ * WorkEddy â€“ Alpine.js API client & page components.
  * Uses Fetch API under the hood. Zero inline JavaScript.
  */
 
-/* ────────────────────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * API client (private helpers)
- * ──────────────────────────────────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const API_BASE = '/api/v1';
-const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 MB — must match server
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 MB â€” must match server
 
 function _token()   { return localStorage.getItem('we_token') || ''; }
 function _save(t)   {
@@ -41,7 +41,7 @@ async function _maybeRefresh(path) {
         if (d.token) _save(d.token);
       }
     }
-  } catch (_) { /* noop — expired tokens handled normally by 401 */ }
+  } catch (_) { /* noop â€” expired tokens handled normally by 401 */ }
 }
 
 async function api(path, opts = {}) {
@@ -82,12 +82,12 @@ async function apiUpload(path, formData, onProgress) {
   });
 }
 
-/* global logout — used by layout nav */
+/* global logout â€” used by layout nav */
 function logout() { _clear(); location.href = '/login'; }
 
-/* ────────────────────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * System dialog helpers (replaces browser alert/confirm usage)
- * ──────────────────────────────────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 let _systemDialog = null;
 
@@ -205,13 +205,13 @@ window.appConfirm = function appConfirm(message, options = {}) {
   });
 };
 
-/* ────────────────────────────────────────────────────────────────────────────
- * Alpine.js – Auth guard (runs on main layout)
- * ──────────────────────────────────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * Alpine.js â€“ Auth guard (runs on main layout)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 document.addEventListener('alpine:init', () => {
 
-  /* ── Auth guard store ─────────────────────────────────────────────────── */
+  /* â”€â”€ Auth guard store â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.store('auth', {
     role: null,
     orgId: null,
@@ -248,14 +248,14 @@ document.addEventListener('alpine:init', () => {
     }
   });
 
-  /* ── Login page ───────────────────────────────────────────────────────── */
+  /* â”€â”€ Login page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('loginPage', () => ({
     step: 'credentials',        // 'credentials' | '2fa'
     email: '', password: '', totpCode: '',
     tempToken: '',              // temporary JWT for 2FA verification
     error: '', loading: false,
 
-    /* Step 1 — email & password */
+    /* Step 1 â€” email & password */
     async submit() {
       this.error = ''; this.loading = true;
       try {
@@ -265,20 +265,20 @@ document.addEventListener('alpine:init', () => {
         });
 
         if (d.requires_2fa) {
-          // User has TOTP enabled — show 2FA code input
+          // User has TOTP enabled â€” show 2FA code input
           this.tempToken = d.temp_token;
           this.step = '2fa';
           return;
         }
 
-        // Normal login — save token and redirect
+        // Normal login â€” save token and redirect
         _save(d.token);
         location.href = '/dashboard';
       } catch (e) { this.error = e.message; }
       finally { this.loading = false; }
     },
 
-    /* Step 2 — verify TOTP code */
+    /* Step 2 â€” verify TOTP code */
     async submit2fa() {
       this.error = ''; this.loading = true;
       try {
@@ -307,7 +307,7 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
-  /* ── Register page ────────────────────────────────────────────────────── */
+  /* â”€â”€ Register page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('registerPage', () => ({
     orgName: '', name: '', email: '', password: '', password2: '', error: '', loading: false,
     async submit() {
@@ -326,7 +326,7 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
-  /* ── Forgot-password page ─────────────────────────────────────────────── */
+  /* â”€â”€ Forgot-password page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('forgotPage', () => ({
     email: '', message: '', isError: false, loading: false,
     async submit() {
@@ -339,9 +339,9 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
-  /* ── Dashboard page ───────────────────────────────────────────────────── */
+  /* â”€â”€ Dashboard page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('dashboardPage', () => ({
-    totalScans: '–', highRisk: '–', moderateRisk: '–', avgScore: '–',
+    totalScans: 'â€“', highRisk: 'â€“', moderateRisk: 'â€“', avgScore: 'â€“',
     leadingIndicators: {
       total_checkins_30d: 0,
       avg_discomfort_30d: null,
@@ -393,7 +393,546 @@ document.addEventListener('alpine:init', () => {
     fmtScore(s) { return Number(s).toFixed(1); }
   }));
 
-  /* ── Tasks list page ──────────────────────────────────────────────────── */
+  /* â”€â”€ Live capture page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  Alpine.data('liveCapturePage', () => ({
+    tasks: [],
+    selectedTaskId: '',
+    selectedEngine: 'yolo26',
+    selectedModel: 'reba',
+    engineNameById: {},
+
+    cameraDevices: [],
+    selectedCameraId: '',
+    cameraReady: false,
+    cameraLoading: false,
+    mediaStream: null,
+
+    sessionLoading: false,
+    activeSessionId: null,
+    sessionStats: {},
+    latestFrame: null,
+    latestMetrics: [],
+    trendPoints: [],
+
+    error: '',
+    warning: '',
+    _pollTimer: null,
+    _trendChart: null,
+
+    async init() {
+      await this.refreshCameraDevices();
+      await this.loadSetup();
+      await this.loadActiveSession();
+    },
+
+    async loadSetup() {
+      this.error = '';
+      try {
+        const [tasks, engineConfig] = await Promise.all([
+          api('/tasks'),
+          api('/live/engines').catch(() => null),
+        ]);
+
+        this.tasks = Array.isArray(tasks) ? tasks : [];
+        if (this.tasks.length && !this.selectedTaskId) {
+          this.selectedTaskId = String(this.tasks[0].id);
+        }
+
+        const cfg = engineConfig && (engineConfig.data ?? engineConfig);
+        if (cfg && Array.isArray(cfg.available_engines)) {
+          this.selectedEngine = cfg.default_engine || this.selectedEngine;
+          this.selectedModel = cfg.scoring_model || this.selectedModel;
+          this.engineNameById = cfg.available_engines.reduce((acc, e) => {
+            acc[e.id] = e.name || e.id;
+            return acc;
+          }, {});
+        } else {
+          this.engineNameById = {
+            yolo26: 'YOLOv26 Pose',
+            mediapipe: 'MediaPipe Pose Landmarker',
+          };
+        }
+      } catch (e) {
+        this.error = e.message;
+      }
+    },
+
+    engineDisplayLabel() {
+      return this.engineNameById[this.selectedEngine] || this.selectedEngine || 'Configured by environment';
+    },
+
+    async refreshCameraDevices() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      this.cameraDevices = devices.filter(d => d.kind === 'videoinput');
+    },
+
+    async startCamera() {
+      this.error = '';
+      this.warning = '';
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        this.error = 'Camera access is not supported in this browser.';
+        return;
+      }
+
+      this.cameraLoading = true;
+      try {
+        const constraints = {
+          video: this.selectedCameraId
+            ? { deviceId: { exact: this.selectedCameraId } }
+            : { facingMode: 'user' },
+          audio: false,
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        this.mediaStream = stream;
+        this.$refs.previewVideo.srcObject = stream;
+        this.cameraReady = true;
+
+        await this.refreshCameraDevices();
+      } catch (_e) {
+        this.error = 'Unable to access camera. Please allow permissions and retry.';
+      } finally {
+        this.cameraLoading = false;
+      }
+    },
+
+    stopCamera() {
+      if (this.mediaStream) {
+        this.mediaStream.getTracks().forEach(t => t.stop());
+      }
+      this.mediaStream = null;
+      if (this.$refs.previewVideo) this.$refs.previewVideo.srcObject = null;
+      this.cameraReady = false;
+    },
+
+    async restartCameraIfNeeded() {
+      if (!this.cameraReady) return;
+      this.stopCamera();
+      await this.startCamera();
+    },
+
+    async togglePreview() {
+      if (this.activeSessionId !== null) return;
+      if (this.cameraReady) {
+        this.stopCamera();
+        this.warning = 'Camera preview stopped.';
+      } else {
+        await this.startCamera();
+      }
+    },
+
+    async toggleLiveSession() {
+      if (this.activeSessionId !== null) {
+        await this.stopSession();
+        return;
+      }
+
+      if (!this.cameraReady) {
+        await this.startCamera();
+      }
+
+      if (!this.cameraReady) {
+        this.error = 'Camera preview is required before starting live session.';
+        return;
+      }
+
+      await this.startSession();
+    },
+
+    async startSession() {
+      this.error = '';
+      this.warning = '';
+
+      if (!this.selectedTaskId) {
+        this.error = 'Please select a task before starting live session.';
+        return;
+      }
+      if (!this.cameraReady) {
+        this.error = 'Start camera preview before starting live session.';
+        return;
+      }
+
+      if (!this.preflightReady()) {
+        const ok = await appConfirm(
+          'Preflight checklist is not complete. Start session anyway?',
+          {
+            title: 'Start with Incomplete Setup',
+            okText: 'Start Anyway',
+            cancelText: 'Review Checklist',
+            variant: 'warning',
+          }
+        );
+        if (!ok) return;
+      }
+
+      this.sessionLoading = true;
+      try {
+        const session = await api('/live/sessions', {
+          method: 'POST',
+          body: JSON.stringify({
+            task_id: Number(this.selectedTaskId),
+            model: this.selectedModel,
+          }),
+        });
+
+        this.activeSessionId = Number(session.id);
+        this.sessionStats = session;
+        this.latestFrame = null;
+        this.latestMetrics = [];
+        this.trendPoints = [];
+        this.renderTrendChart();
+        this.pollSession();
+      } catch (e) {
+        this.error = e.message;
+      } finally {
+        this.sessionLoading = false;
+      }
+    },
+
+    async stopSession() {
+      if (!this.activeSessionId) return;
+      this.sessionLoading = true;
+      this.error = '';
+      try {
+        await api('/live/sessions/' + this.activeSessionId + '/stop', { method: 'POST' });
+        clearTimeout(this._pollTimer);
+        this.activeSessionId = null;
+        this.sessionStats = {};
+        this.stopCamera();
+        this.warning = 'Live session stopped and camera preview turned off.';
+        this.renderTrendChart();
+      } catch (e) {
+        this.error = e.message;
+      } finally {
+        this.sessionLoading = false;
+      }
+    },
+
+    async loadActiveSession() {
+      try {
+        const sessions = await api('/live/sessions?status=active');
+        if (!Array.isArray(sessions) || sessions.length === 0) return;
+
+        const first = sessions[0];
+        this.activeSessionId = Number(first.id);
+        this.sessionStats = first;
+        this.pollSession();
+      } catch (_) {
+        // non-blocking
+      }
+    },
+
+    _toMetricRows(frame) {
+      if (!frame) return [];
+
+      let metrics = frame.metrics_json;
+      if (typeof metrics === 'string') {
+        try { metrics = JSON.parse(metrics); } catch (_) { metrics = {}; }
+      }
+      if (!metrics || typeof metrics !== 'object') return [];
+
+      const labels = {
+        trunk_angle: 'Trunk angle (Â°)',
+        neck_angle: 'Neck angle (Â°)',
+        upper_arm_angle: 'Upper arm (Â°)',
+        lower_arm_angle: 'Lower arm (Â°)',
+        wrist_angle: 'Wrist angle (Â°)',
+        confidence: 'Confidence',
+        subject_track_id: 'Track ID',
+      };
+
+      const rows = [];
+      Object.entries(labels).forEach(([k, label]) => {
+        if (metrics[k] == null || metrics[k] === '') return;
+        let value = metrics[k];
+        if (k === 'confidence') value = Number(value).toFixed(3);
+        rows.push({ key: k, label, value });
+      });
+      return rows;
+    },
+
+    _metricsObject(frame) {
+      if (!frame) return {};
+      let metrics = frame.metrics_json;
+      if (typeof metrics === 'string') {
+        try { metrics = JSON.parse(metrics); } catch (_) { metrics = {}; }
+      }
+      if (!metrics || typeof metrics !== 'object') return {};
+      return metrics;
+    },
+
+    latestConfidenceLabel() {
+      const m = this._metricsObject(this.latestFrame);
+      const c = Number(m.confidence);
+      if (!Number.isFinite(c)) return 'Confidence â€“';
+      return 'Confidence ' + c.toFixed(3);
+    },
+
+    confidenceBadgeClass() {
+      const m = this._metricsObject(this.latestFrame);
+      const c = Number(m.confidence);
+      if (!Number.isFinite(c)) return 'badge-soft-secondary';
+      if (c >= 0.8) return 'badge-soft-success';
+      if (c >= 0.5) return 'badge-soft-warning';
+      return 'badge-soft-danger';
+    },
+
+    renderTrendChart() {
+      const canvas = document.getElementById('liveTrendChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+
+      if (this._trendChart) {
+        this._trendChart.destroy();
+        this._trendChart = null;
+      }
+
+      const points = Array.isArray(this.trendPoints) ? this.trendPoints : [];
+      if (!points.length) return;
+
+      const labels = points.map(p => '#' + p.frame_number);
+      const trunk = points.map(p => p.trunk_angle);
+      const neck = points.map(p => p.neck_angle);
+
+      this._trendChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Trunk',
+              data: trunk,
+              borderColor: '#7c3aed',
+              backgroundColor: 'rgba(124,58,237,0.15)',
+              tension: 0.3,
+              pointRadius: 2,
+              fill: false,
+            },
+            {
+              label: 'Neck',
+              data: neck,
+              borderColor: '#0ea5e9',
+              backgroundColor: 'rgba(14,165,233,0.15)',
+              tension: 0.3,
+              pointRadius: 2,
+              fill: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { maxTicksLimit: 8 },
+            },
+            y: {
+              beginAtZero: true,
+              suggestedMax: 80,
+              ticks: { callback: (v) => v + 'Â°' },
+            },
+          },
+        },
+      });
+    },
+
+    async pollSession() {
+      if (!this.activeSessionId) return;
+
+      try {
+        const [session, frames] = await Promise.all([
+          api('/live/sessions/' + this.activeSessionId),
+          api('/live/sessions/' + this.activeSessionId + '/frames?limit=30'),
+        ]);
+
+        this.sessionStats = session;
+
+        const list = Array.isArray(frames) ? frames : [];
+        this.latestFrame = list.length ? list[0] : null;
+        this.latestMetrics = this._toMetricRows(this.latestFrame);
+
+        const ordered = list.slice().reverse();
+        this.trendPoints = ordered.map((f) => {
+          const m = this._metricsObject(f);
+          return {
+            frame_number: Number(f.frame_number || 0),
+            trunk_angle: Number(m.trunk_angle ?? f.trunk_angle ?? 0),
+            neck_angle: Number(m.neck_angle ?? f.neck_angle ?? 0),
+          };
+        }).filter(p => Number.isFinite(p.trunk_angle) && Number.isFinite(p.neck_angle));
+        this.$nextTick(() => this.renderTrendChart());
+
+        if (!list.length && (session.analysed_frame_count || 0) === 0) {
+          this.warning = 'Session started. Waiting for worker frame ingestion...';
+        } else {
+          this.warning = '';
+        }
+
+        const status = String(session.status || '').toLowerCase();
+        if (status === 'active' || status === 'paused') {
+          clearTimeout(this._pollTimer);
+          this._pollTimer = setTimeout(() => this.pollSession(), 2500);
+        } else {
+          this.activeSessionId = null;
+        }
+      } catch (e) {
+        this.error = e.message;
+      }
+    },
+
+    formatLatency(v) {
+      if (v == null || v === '') return 'â€“';
+      const n = Number(v);
+      if (!Number.isFinite(n)) return 'â€“';
+      return n.toFixed(1) + ' ms';
+    },
+
+    preflightChecks() {
+      const hasTask = !!this.selectedTaskId;
+      const hasCamera = !!this.cameraReady;
+      const hasEngine = !!this.selectedEngine;
+      const hasModel = !!this.selectedModel;
+
+      return [
+        {
+          key: 'task',
+          ok: hasTask,
+          title: 'Task selected',
+          hint: hasTask ? 'Task linked to this live session.' : 'Pick a task from Session Setup.',
+        },
+        {
+          key: 'camera',
+          ok: hasCamera,
+          title: 'Camera preview active',
+          hint: hasCamera ? 'Camera stream is ready.' : 'Start camera and verify framing.',
+        },
+        {
+          key: 'engine',
+          ok: hasEngine,
+          title: 'Pose engine configured',
+          hint: hasEngine ? ('Using ' + this.selectedEngine + '.') : 'Choose a pose engine.',
+        },
+        {
+          key: 'model',
+          ok: hasModel,
+          title: 'Scoring model configured',
+          hint: hasModel ? ('Using ' + String(this.selectedModel).toUpperCase() + '.') : 'Choose RULA or REBA.',
+        },
+      ];
+    },
+
+    readinessPercent() {
+      const checks = this.preflightChecks();
+      if (!checks.length) return 0;
+      const ok = checks.filter(c => c.ok).length;
+      return Math.round((ok / checks.length) * 100);
+    },
+
+    preflightReady() {
+      return this.readinessPercent() === 100;
+    },
+
+    qualityScore() {
+      const analysed = Number(this.sessionStats?.analysed_frame_count ?? 0);
+      const latency = Number(this.sessionStats?.avg_latency_ms ?? 0);
+      const m = this._metricsObject(this.latestFrame);
+      const confidence = Number(m.confidence ?? 0);
+
+      let score = 100;
+
+      if (analysed < 10) score -= 18;
+      else if (analysed < 30) score -= 10;
+
+      if (Number.isFinite(latency) && latency > 0) {
+        if (latency > 2000) score -= 35;
+        else if (latency > 1200) score -= 22;
+        else if (latency > 700) score -= 12;
+      }
+
+      if (Number.isFinite(confidence) && confidence > 0) {
+        if (confidence < 0.35) score -= 35;
+        else if (confidence < 0.55) score -= 20;
+        else if (confidence < 0.75) score -= 10;
+      } else if (this.activeSessionId) {
+        score -= 15;
+      }
+
+      return Math.max(0, Math.min(100, Math.round(score)));
+    },
+
+    qualityLabel() {
+      const s = this.qualityScore();
+      if (s >= 80) return 'Good';
+      if (s >= 60) return 'Fair';
+      return 'Poor';
+    },
+
+    qualityBadgeClass() {
+      const s = this.qualityScore();
+      if (s >= 80) return 'badge-soft-success';
+      if (s >= 60) return 'badge-soft-warning';
+      return 'badge-soft-danger';
+    },
+
+    qualityBarColor() {
+      const s = this.qualityScore();
+      if (s >= 80) return '#16a34a';
+      if (s >= 60) return '#d97706';
+      return '#dc2626';
+    },
+
+    qualityHint() {
+      const analysed = Number(this.sessionStats?.analysed_frame_count ?? 0);
+      if (!this.activeSessionId) return 'Start a live session to evaluate quality.';
+      if (analysed < 5) return 'Collecting initial frame quality...';
+      return 'Updated from confidence, latency, and analysed frame volume.';
+    },
+
+    qualityAdvice() {
+      const tips = [];
+      const latency = Number(this.sessionStats?.avg_latency_ms ?? 0);
+      const analysed = Number(this.sessionStats?.analysed_frame_count ?? 0);
+      const m = this._metricsObject(this.latestFrame);
+      const confidence = Number(m.confidence ?? 0);
+
+      if (!this.activeSessionId) {
+        return [
+          'Start camera preview, then run a live session.',
+          'Keep shoulders and hips inside the guide box for stable tracking.',
+        ];
+      }
+
+      if (analysed < 10) {
+        tips.push('Hold a steady posture for 5â€“10 seconds to collect enough baseline frames.');
+      }
+      if (Number.isFinite(confidence) && confidence > 0 && confidence < 0.55) {
+        tips.push('Increase front lighting and keep full upper body visible to improve confidence.');
+      }
+      if (Number.isFinite(latency) && latency > 1200) {
+        tips.push('Reduce camera resolution or close other heavy apps to lower analysis latency.');
+      }
+      if (tips.length === 0) {
+        tips.push('Quality is stable. Continue capturing for more representative motion cycles.');
+      }
+
+      return tips.slice(0, 3);
+    },
+
+    destroy() {
+      clearTimeout(this._pollTimer);
+      if (this._trendChart) {
+        this._trendChart.destroy();
+        this._trendChart = null;
+      }
+      this.stopCamera();
+    },
+  }));
+
+  /* â”€â”€ Tasks list page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('tasksPage', () => ({
     tasks: [], loading: true, error: '',
     search: '',
@@ -432,7 +971,7 @@ document.addEventListener('alpine:init', () => {
     fmtDate(d) { return new Date(d).toLocaleDateString(); }
   }));
 
-  /* ── Task detail page ─────────────────────────────────────────────────── */
+  /* â”€â”€ Task detail page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('taskDetailPage', () => ({
     taskId: null, task: null, scans: [], loading: true, error: '',
     init() {
@@ -452,7 +991,7 @@ document.addEventListener('alpine:init', () => {
     fmtScore(s) { return Number(s ?? 0).toFixed(1); }
   }));
 
-  /* ── New manual scan page ─────────────────────────────────────────────── */
+  /* â”€â”€ New manual scan page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('manualScanPage', () => ({
     tasks: [], selectedTask: '', parentScanId: null,
     model: 'reba',
@@ -502,7 +1041,7 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
-  /* ── New video scan page ──────────────────────────────────────────────── */
+  /* â”€â”€ New video scan page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('videoScanPage', () => ({
     tasks: [], selectedTask: '', parentScanId: null, error: '',
     model: 'reba',
@@ -601,9 +1140,9 @@ document.addEventListener('alpine:init', () => {
           this.resultLoading = false;
           const metrics = s.metrics || {};
           const metricLabels = {
-            neck_angle: 'Neck angle (°)', trunk_angle: 'Trunk angle (°)',
-            upper_arm_angle: 'Upper arm (°)', lower_arm_angle: 'Lower arm (°)',
-            wrist_angle: 'Wrist (°)', leg_score: 'Leg score',
+            neck_angle: 'Neck angle (Â°)', trunk_angle: 'Trunk angle (Â°)',
+            upper_arm_angle: 'Upper arm (Â°)', lower_arm_angle: 'Lower arm (Â°)',
+            wrist_angle: 'Wrist (Â°)', leg_score: 'Leg score',
             shoulder_elevation_duration: 'Shoulder elev. (s)',
             repetition_count: 'Repetitions', processing_confidence: 'Confidence'
           };
@@ -622,7 +1161,7 @@ document.addEventListener('alpine:init', () => {
       }
     },
     get score() {
-      if (!this.scan) return '–';
+      if (!this.scan) return 'â€“';
       return this.scoreValue.toFixed(1);
     },
     get scoreValue() {
@@ -662,7 +1201,7 @@ document.addEventListener('alpine:init', () => {
     destroy() { clearTimeout(this._pollTimer); if (this.videoPreviewUrl) URL.revokeObjectURL(this.videoPreviewUrl); }
   }));
 
-  /* ── Scan results page ────────────────────────────────────────────────── */
+  /* â”€â”€ Scan results page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('scanResultsPage', () => ({
     scanId: null, scan: null, loading: true, error: '', pending: false,
     scanInvalid: false, errorMessage: '',
@@ -697,12 +1236,12 @@ document.addEventListener('alpine:init', () => {
         // Build measurements from the metrics sub-object
         const metrics = s.metrics || {};
         const metricLabels = {
-          neck_angle: 'Neck angle (°)', trunk_angle: 'Trunk angle (°)',
-          upper_arm_angle: 'Upper arm (°)', lower_arm_angle: 'Lower arm (°)',
-          wrist_angle: 'Wrist (°)', leg_score: 'Leg score',
+          neck_angle: 'Neck angle (Â°)', trunk_angle: 'Trunk angle (Â°)',
+          upper_arm_angle: 'Upper arm (Â°)', lower_arm_angle: 'Lower arm (Â°)',
+          wrist_angle: 'Wrist (Â°)', leg_score: 'Leg score',
           load_weight: 'Load (kg)', coupling: 'Coupling',
           horizontal_distance: 'H. distance (cm)', vertical_start: 'V. start (cm)',
-          vertical_travel: 'V. travel (cm)', twist_angle: 'Twist (°)',
+          vertical_travel: 'V. travel (cm)', twist_angle: 'Twist (Â°)',
           frequency: 'Frequency', shoulder_elevation_duration: 'Shoulder elev. (s)',
           repetition_count: 'Repetitions', processing_confidence: 'Confidence'
         };
@@ -723,7 +1262,7 @@ document.addEventListener('alpine:init', () => {
       finally { this.loading = false; }
     },
     get score() {
-      if (!this.scan) return '–';
+      if (!this.scan) return 'â€“';
       return this.scoreValue.toFixed(1);
     },
     get scoreValue() {
@@ -768,7 +1307,7 @@ document.addEventListener('alpine:init', () => {
     destroy()  { clearTimeout(this._pollTimer); }
   }));
 
-  /* ── Observer rating page ─────────────────────────────────────────────── */
+  /* â”€â”€ Observer rating page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('observerRatePage', () => ({
     scanId: null, scan: null, ratings: [],
     loading: true, error: '', formError: '', saving: false, submitted: false,
@@ -776,15 +1315,15 @@ document.addEventListener('alpine:init', () => {
     init() {
       const parts = location.pathname.split('/').filter(Boolean);
       // Supports two URL patterns:
-      //   /scans/{id}/observe   → parts = ['scans', '{id}', 'observe']
-      //   /observer-rating?scan_id={id}  → read from query string
+      //   /scans/{id}/observe   â†’ parts = ['scans', '{id}', 'observe']
+      //   /observer-rating?scan_id={id}  â†’ read from query string
       if (parts[0] === 'scans') {
         this.scanId = parts[1] || null;
       } else {
         this.scanId = new URLSearchParams(location.search).get('scan_id') || null;
       }
       if (!this.scanId) {
-        // No scan context — send to scans list so the user can pick one
+        // No scan context â€” send to scans list so the user can pick one
         location.href = '/scans/new-manual';
         return;
       }
@@ -825,7 +1364,7 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
-  /* ── Scan comparison page ─────────────────────────────────────────────── */
+  /* â”€â”€ Scan comparison page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('scanComparePage', () => ({
     scanId: null, current: null, parent: null, improvementProof: null,
     loading: true, error: '',
@@ -878,15 +1417,15 @@ document.addEventListener('alpine:init', () => {
     fmtDate(d) { return new Date(d).toLocaleString(); }
   }));
 
-  /* ────────────────────────────────────────────────────────────────────────
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    * ADVANCED SCAN COMPARISON  (/scans/compare)
-   * Components: ScanSelector · SkeletonViewer · ScoreDeltaCard
-   *             JointHeatmap · ComparisonTree · Timeline
-   * ──────────────────────────────────────────────────────────────────────── */
+   * Components: ScanSelector Â· SkeletonViewer Â· ScoreDeltaCard
+   *             JointHeatmap Â· ComparisonTree Â· Timeline
+   * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   Alpine.data('scanAdvancedComparePage', () => ({
 
-    /* ── State ─────────────────────────────────────────────────────── */
+    /* â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     loadingScans: true,
     scansError:   '',
     scans:        [],         // completed scans available for selection
@@ -900,7 +1439,7 @@ document.addEventListener('alpine:init', () => {
 
     _chart: null,             // Chart.js instance
 
-    /* ── Lifecycle ─────────────────────────────────────────────────── */
+    /* â”€â”€ Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     async init() {
       await this.loadScans();
       // Support deep-link: /scans/compare?a=1&b=2
@@ -911,7 +1450,7 @@ document.addEventListener('alpine:init', () => {
       if (a && b) await this.runComparison();
     },
 
-    /* ── Data loading ──────────────────────────────────────────────── */
+    /* â”€â”€ Data loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     async loadScans() {
       this.loadingScans = true;
       this.scansError   = '';
@@ -946,7 +1485,7 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    /* ── Computed getters ──────────────────────────────────────────── */
+    /* â”€â”€ Computed getters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     get canCompare() {
       return this.scanAId && this.scanBId && this.scanAId !== this.scanBId && this.sameModel;
     },
@@ -999,7 +1538,7 @@ document.addEventListener('alpine:init', () => {
     get skeletonColorsA() { return this._buildColors('a'); },
     get skeletonColorsB() { return this._buildColors('b'); },
 
-    /* ── Skeleton colour builder ───────────────────────────────────── */
+    /* â”€â”€ Skeleton colour builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     _buildColors(side) {
       const def = '#cbd5e1';
       const c = {
@@ -1017,7 +1556,7 @@ document.addEventListener('alpine:init', () => {
       const isA    = side === 'a';
       const angles = this.comparison.pose_delta?.angles ?? {};
 
-      // Helper: angle value → risk colour
+      // Helper: angle value â†’ risk colour
       const col = (key) => {
         const a = angles[key];
         if (!a) return null;
@@ -1050,7 +1589,7 @@ document.addEventListener('alpine:init', () => {
       return c;
     },
 
-    /* ── Risk utilities ────────────────────────────────────────────── */
+    /* â”€â”€ Risk utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     riskColor(score) {
       if (score == null) return '#cbd5e1';
       if (score < 30) return '#22c55e';
@@ -1059,7 +1598,7 @@ document.addEventListener('alpine:init', () => {
       return '#ef4444';
     },
     riskLabel(score) {
-      if (score == null) return '—';
+      if (score == null) return 'â€”';
       if (score < 30) return 'Low';
       if (score < 55) return 'Moderate';
       if (score < 75) return 'High';
@@ -1088,15 +1627,15 @@ document.addEventListener('alpine:init', () => {
       return { cls: 'alert-info', icon: 'bi-dash-circle', text: 'No Change' };
     },
 
-    /* ── Formatting ────────────────────────────────────────────────── */
+    /* â”€â”€ Formatting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     fmtDate(d) {
-      if (!d) return '—';
+      if (!d) return 'â€”';
       return new Date(d).toLocaleDateString(undefined, {
         year: 'numeric', month: 'short', day: 'numeric',
       });
     },
     fmtScore(v) {
-      if (v == null) return '—';
+      if (v == null) return 'â€”';
       return Number(v).toFixed(1);
     },
     prettyKey(k) {
@@ -1106,10 +1645,10 @@ document.addEventListener('alpine:init', () => {
     scanLabel(s) {
       const date = this.fmtDate(s.created_at);
       const risk = s.risk_category ? ' [' + s.risk_category + ']' : '';
-      return '#' + s.id + ' · ' + (s.model || '').toUpperCase() + ' · ' + date + risk;
+      return '#' + s.id + ' Â· ' + (s.model || '').toUpperCase() + ' Â· ' + date + risk;
     },
 
-    /* ── Timeline (Chart.js) ───────────────────────────────────────── */
+    /* â”€â”€ Timeline (Chart.js) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     _renderTimeline() {
       const canvas = document.getElementById('cmpTimelineChart');
       if (!canvas || typeof Chart === 'undefined') return;
@@ -1162,11 +1701,11 @@ document.addEventListener('alpine:init', () => {
               callbacks: {
                 title: (ctx) => {
                   const s = sorted[ctx[0].dataIndex];
-                  const tag = String(s.id) === String(this.scanAId) ? ' ← Scan A'
-                            : String(s.id) === String(this.scanBId) ? ' ← Scan B' : '';
-                  return '#' + s.id + tag + '  ·  ' + ctx[0].label;
+                  const tag = String(s.id) === String(this.scanAId) ? ' â† Scan A'
+                            : String(s.id) === String(this.scanBId) ? ' â† Scan B' : '';
+                  return '#' + s.id + tag + '  Â·  ' + ctx[0].label;
                 },
-                label: (ctx) => ' Risk Score: ' + (ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) : '—'),
+                label: (ctx) => ' Risk Score: ' + (ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) : 'â€”'),
               },
             },
           },
@@ -1188,11 +1727,11 @@ document.addEventListener('alpine:init', () => {
 
   }));
 
-  /* ────────────────────────────────────────────────────────────────────────
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    * ADMIN PAGES
-   * ──────────────────────────────────────────────────────────────────────── */
+   * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-  /* ── Admin Dashboard page ─────────────────────────────────────────────── */
+  /* â”€â”€ Admin Dashboard page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('adminDashboardPage', () => ({
     stats: {}, loading: true, error: '',
     async init() {
@@ -1202,11 +1741,11 @@ document.addEventListener('alpine:init', () => {
       } catch (e) { this.error = e.message; }
       finally { this.loading = false; }
     },
-    fmtDate(d) { return d ? new Date(d).toLocaleDateString() : '—'; },
+    fmtDate(d) { return d ? new Date(d).toLocaleDateString() : 'â€”'; },
     fmtCurrency(v) { return Number(v || 0).toFixed(2); }
   }));
 
-  /* ── Admin Organizations page ─────────────────────────────────────────── */
+  /* â”€â”€ Admin Organizations page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('adminOrgsPage', () => ({
     orgs: [], loading: true, error: '', search: '',
     editingOrg: null, form: { name: '', contact_email: '', status: 'active' }, formError: '',
@@ -1275,14 +1814,14 @@ document.addEventListener('alpine:init', () => {
       } catch (e) { this.error = e.message; }
       finally { this.togglingOrgId = null; }
     },
-    fmtDate(d) { return d ? new Date(d).toLocaleDateString() : '—'; },
+    fmtDate(d) { return d ? new Date(d).toLocaleDateString() : 'â€”'; },
     _getModal() {
       if (!this._modal) this._modal = new bootstrap.Modal(document.getElementById('orgModal'));
       return this._modal;
     }
   }));
 
-  /* ── Admin Users page ─────────────────────────────────────────────────── */
+  /* â”€â”€ Admin Users page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('adminUsersPage', () => ({
     users: [], loading: true, error: '', search: '', filterRole: '', filterStatus: '',
     editingUser: null, editForm: { name: '', email: '', role: '', status: '' }, formError: '',
@@ -1358,7 +1897,7 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  /* ── Admin Plans page ─────────────────────────────────────────────────── */
+  /* â”€â”€ Admin Plans page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('adminPlansPage', () => ({
     plans: [], loading: true, error: '',
     search: '',
@@ -1444,11 +1983,11 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  /* ────────────────────────────────────────────────────────────────────────
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    * ORGANIZATION PAGES
-   * ──────────────────────────────────────────────────────────────────────── */
+   * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-  /* ── Org Users page ───────────────────────────────────────────────────── */
+  /* â”€â”€ Org Users page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('orgUsersPage', () => ({
     members: [], loading: true, error: '',
     memberSearch: '',
@@ -1544,13 +2083,13 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  /* ── User Profile page ──────────────────────────────────────────────── */
+  /* â”€â”€ User Profile page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('userProfilePage', () => ({
     profile: {}, loading: true,
     form: { name: '', email: '' },
     saving: false, saveSuccess: '', saveError: '',
 
-    // ── 2FA state ──────────────────────────────────────────────────
+    // â”€â”€ 2FA state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     twoFaEnabled: false, twoFaLoading: true,
     twoFaSetupLoading: false, twoFaConfirmLoading: false, twoFaDisableLoading: false,
     setupStep: 'idle',        // 'idle' | 'qr' | 'done'
@@ -1650,10 +2189,10 @@ document.addEventListener('alpine:init', () => {
       this.twoFaError  = '';
     },
 
-    fmtDate(d) { return d ? new Date(d).toLocaleDateString() : '—'; }
+    fmtDate(d) { return d ? new Date(d).toLocaleDateString() : 'â€”'; }
   }));
 
-  /* ── Org Settings page ────────────────────────────────────────────────── */
+  /* â”€â”€ Org Settings page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('orgSettingsPage', () => ({
     org: {}, subscription: {}, loading: true, error: '',
     form: {
@@ -1775,10 +2314,10 @@ document.addEventListener('alpine:init', () => {
       this._populateForm();
       this.saveSuccess = ''; this.saveError = '';
     },
-    fmtDate(d) { return d ? new Date(d).toLocaleDateString() : '—'; }
+    fmtDate(d) { return d ? new Date(d).toLocaleDateString() : 'â€”'; }
   }));
 
-  /* ── Leading Indicators Check-in page ─────────────────────────────────── */
+  /* â”€â”€ Leading Indicators Check-in page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('leadingIndicatorsPage', () => ({
     tasks: [],
     summary: null,
@@ -1874,7 +2413,9 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  /* ── Admin System Settings page ──────────────────────────────────────── */
+  /* â”€â”€ Admin System Settings page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+  /* Admin system settings page */
   Alpine.data('adminSettingsPage', () => ({
     loading: true, saving: false,
     saveSuccess: '', saveError: '',
@@ -1918,7 +2459,7 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
-  /* ── Notifications dropdown ─────────────────────────────────────────── */
+  /* â”€â”€ Notifications dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('notificationsDropdown', () => ({
     open: false, loading: false,
     markingAllRead: false,
@@ -1940,13 +2481,13 @@ document.addEventListener('alpine:init', () => {
       this.open = !this.open;
       if (this.open) {
         if (!this._loaded) {
-          await this._fullLoad();         // first open — full fetch
+          await this._fullLoad();         // first open â€” full fetch
         } else {
-          await this._refreshNew();       // subsequent — only new items
+          await this._refreshNew();       // subsequent â€” only new items
         }
       }
     },
-    /* Full load — runs once on first open */
+    /* Full load â€” runs once on first open */
     async _fullLoad() {
       this.loading = true;
       try {
@@ -1957,7 +2498,7 @@ document.addEventListener('alpine:init', () => {
       } catch (_) { /* noop */ }
       finally { this.loading = false; }
     },
-    /* Incremental refresh — prepend new items & update count */
+    /* Incremental refresh â€” prepend new items & update count */
     async _refreshNew() {
       try {
         const data = await api('/notifications');
@@ -2010,7 +2551,7 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
-  /* ── Org Billing page ─────────────────────────────────────────────────── */
+  /* â”€â”€ Org Billing page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   Alpine.data('orgBillingPage', () => ({
     sub: {}, plans: [], invoices: [], loading: true, error: '', changing: false,
     changingPlanId: null,
@@ -2075,10 +2616,10 @@ document.addEventListener('alpine:init', () => {
       return this.fmtDate(this.sub.period_start) + ' - ' + this.fmtDate(this.sub.period_end);
     },
     fmtDate(d) {
-      return d ? new Date(d).toLocaleDateString() : '—';
+      return d ? new Date(d).toLocaleDateString() : 'â€”';
     },
     fmtDateTime(d) {
-      return d ? new Date(d).toLocaleString() : '—';
+      return d ? new Date(d).toLocaleString() : 'â€”';
     },
     fmtMoney(amount, currency = 'USD') {
       const value = Number(amount || 0);
@@ -2140,3 +2681,4 @@ document.addEventListener('alpine:init', () => {
 });
 
 // End of Alpine.js components
+
