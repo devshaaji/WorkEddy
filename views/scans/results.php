@@ -118,7 +118,9 @@ ob_start();
               <th>#</th>
               <th>Control</th>
               <th>Hierarchy</th>
+              <th>Type</th>
               <th>Expected Risk Reduction</th>
+              <th>Feasibility</th>
               <th>Cost</th>
               <th>Deploy</th>
               <th>Throughput Impact</th>
@@ -131,9 +133,29 @@ ob_start();
                 <td>
                   <div class="fw-semibold" x-text="c.title"></div>
                   <div class="text-muted text-sm" x-text="c.rationale"></div>
+                  <div class="text-xs text-muted mt-1" x-show="c.control_type === 'interim' && c.interim_for_control_code">
+                    Interim while higher-order control is deployed:
+                    <span class="fw-semibold" x-text="c.interim_for_control_code"></span>
+                  </div>
+                  <div class="text-xs text-muted mt-1" x-show="c.evidence && c.evidence.pros && c.evidence.pros.length">
+                    <strong>Pros:</strong> <span x-text="c.evidence.pros.join(', ')"></span>
+                  </div>
+                  <div class="text-xs text-muted" x-show="c.evidence && c.evidence.cons && c.evidence.cons.length">
+                    <strong>Cons:</strong> <span x-text="c.evidence.cons.join(', ')"></span>
+                  </div>
                 </td>
                 <td><span class="badge badge-soft-secondary text-capitalize" x-text="c.hierarchy_level"></span></td>
+                <td>
+                  <span class="badge text-capitalize"
+                        :class="c.control_type === 'interim' ? 'badge-soft-warning' : 'badge-soft-success'"
+                        x-text="c.control_type || 'permanent'"></span>
+                </td>
                 <td x-text="Number(c.expected_risk_reduction_pct).toFixed(1) + '%' "></td>
+                <td>
+                  <span class="badge text-capitalize"
+                        :class="c.feasibility_status === 'feasible' ? 'badge-soft-success' : (c.feasibility_status === 'not_feasible' ? 'badge-soft-danger' : 'badge-soft-warning')"
+                        x-text="(Number(c.feasibility_score || 0).toFixed(1)) + '% ' + (c.feasibility_status || 'conditional')"></span>
+                </td>
                 <td class="text-capitalize" x-text="c.implementation_cost"></td>
                 <td x-text="c.time_to_deploy_days + 'd'"></td>
                 <td class="text-capitalize" x-text="c.throughput_impact"></td>

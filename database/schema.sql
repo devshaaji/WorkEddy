@@ -136,6 +136,10 @@ CREATE TABLE IF NOT EXISTS scan_control_recommendations (
     implementation_cost ENUM('low','medium','high') NOT NULL,
     time_to_deploy_days INT UNSIGNED NOT NULL,
     throughput_impact ENUM('low','medium','high') NOT NULL,
+    control_type ENUM('permanent','interim') NOT NULL DEFAULT 'permanent',
+    feasibility_score DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    feasibility_status ENUM('feasible','conditional','not_feasible') NOT NULL DEFAULT 'conditional',
+    interim_for_control_code VARCHAR(120) NULL,
     rationale TEXT NOT NULL,
     evidence_json JSON NULL,
     recommendation_engine_version VARCHAR(64) NOT NULL DEFAULT 'ctrl_rec_v1',
@@ -144,7 +148,8 @@ CREATE TABLE IF NOT EXISTS scan_control_recommendations (
     UNIQUE KEY uniq_ctrl_scan_rank (scan_id, rank_order),
     UNIQUE KEY uniq_ctrl_scan_code (scan_id, control_code),
     INDEX idx_ctrl_scan (scan_id),
-    INDEX idx_ctrl_hierarchy (hierarchy_level)
+    INDEX idx_ctrl_hierarchy (hierarchy_level),
+    INDEX idx_ctrl_feasibility (feasibility_status)
 );
 
 -- Legacy tables kept for backwards compatibility with existing data.

@@ -225,6 +225,35 @@ ob_start();
             <input class="form-control" id="rpReductionFactor" type="number" step="0.1" min="0" max="20"
                    x-model.number="form.recommendation_policy.ranking.reduction_factor">
           </div>
+          <div class="col-md-4">
+            <label class="form-label" for="rpMinFeasible">Minimum Feasibility Score (%)</label>
+            <input class="form-control" id="rpMinFeasible" type="number" step="1" min="0" max="100"
+                   x-model.number="form.recommendation_policy.feasibility.minimum_total_score">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="rpMinPolicy">Minimum Policy Compliance (%)</label>
+            <input class="form-control" id="rpMinPolicy" type="number" step="1" min="0" max="100"
+                   x-model.number="form.recommendation_policy.feasibility.minimum_policy_compliance">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="rpInterimDays">Max Days Without Interim Control</label>
+            <input class="form-control" id="rpInterimDays" type="number" step="1" min="1" max="180"
+                   x-model.number="form.recommendation_policy.interim.max_days_without_interim">
+          </div>
+          <div class="col-md-4">
+            <div class="form-check form-switch mt-4 pt-2">
+              <input class="form-check-input" type="checkbox" role="switch" id="rpStrictHierarchy"
+                     x-model="form.recommendation_policy.ranking.strict_hierarchy">
+              <label class="form-check-label" for="rpStrictHierarchy">Require highest feasible hierarchy first</label>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-check form-switch mt-4 pt-2">
+              <input class="form-check-input" type="checkbox" role="switch" id="rpAllowPpeInterim"
+                     x-model="form.recommendation_policy.interim.allow_ppe_interim">
+              <label class="form-check-label" for="rpAllowPpeInterim">Allow PPE as interim only</label>
+            </div>
+          </div>
 
           <div class="col-md-4">
             <label class="form-label" for="rpTrunkHigh">Trunk Flexion High Threshold (°)</label>

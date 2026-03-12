@@ -164,4 +164,54 @@ final class ControlRecommendationServiceTest extends TestCase
         $this->assertNotSame($topDefault, $topCostSensitive);
         $this->assertSame('CUSTOM_LOWER_REDUCTION_LOW_COST', $topCostSensitive);
     }
+
+    public function testHighRiskSelectionPrioritizesHighestFeasibleHierarchyWithInterimSupport(): void
+    {
+        $svc = new ControlRecommendationService();
+
+        $rows = $svc->recommend('reba', [
+            'trunk_angle' => 52,
+            'upper_arm_angle' => 20,
+            'repetition_count' => 8,
+            'load_weight' => 6,
+        ], [
+            'normalized_score' => 72,
+            'risk_category' => 'high',
+        ]);
+
+        $this->assertNotEmpty($rows);
+        $this->assertSame('elimination', $rows[0]['hierarchy_level']);
+
+        $interimRows = array_values(array_filter(
+            $rows,
+            static fn (array $r): bool => ($r['control_type'] ?? 'permanent') === 'interim'
+        ));
+        $this->assertNotEmpty($interimRows);
+        $this->assertNotEmpty(array_filter(
+            $interimRows,
+            static fn (array $r): bool => !empty($r['interim_for_control_code'])
+        ));
+    }
+
+    public function testRecommendationsIncludeOshaFeasibilityMetadata(): void
+    {
+        $svc = new ControlRecommendationService();
+
+        $rows = $svc->recommend('reba', [
+            'trunk_angle' => 38,
+            'upper_arm_angle' => 15,
+            'repetition_count' => 5,
+            'load_weight' => 4,
+        ], [
+            'normalized_score' => 45,
+            'risk_category' => 'moderate',
+        ]);
+
+        $this->assertNotEmpty($rows);
+        $first = $rows[0];
+        $this->assertArrayHasKey('feasibility_score', $first);
+        $this->assertArrayHasKey('feasibility_status', $first);
+        $this->assertArrayHasKey('evidence', $first);
+        $this->assertArrayHasKey('osha_feasibility', $first['evidence']);
+    }
 }

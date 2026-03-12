@@ -196,6 +196,8 @@ final class OrgService
         $thresholds = is_array($value['thresholds'] ?? null) ? $value['thresholds'] : [];
         $riskMultipliers = is_array($value['risk_multipliers'] ?? null) ? $value['risk_multipliers'] : [];
         $ranking = is_array($value['ranking'] ?? null) ? $value['ranking'] : [];
+        $feasibility = is_array($value['feasibility'] ?? null) ? $value['feasibility'] : [];
+        $interim = is_array($value['interim'] ?? null) ? $value['interim'] : [];
         $catalog = is_array($value['catalog'] ?? null) ? $value['catalog'] : [];
 
         return [
@@ -215,9 +217,28 @@ final class OrgService
                 'cost_penalty_factor' => isset($ranking['cost_penalty_factor']) ? (float) $ranking['cost_penalty_factor'] : 1.1,
                 'impact_penalty_factor' => isset($ranking['impact_penalty_factor']) ? (float) $ranking['impact_penalty_factor'] : 0.8,
                 'reduction_factor' => isset($ranking['reduction_factor']) ? (float) $ranking['reduction_factor'] : 1.0,
+                'strict_hierarchy' => array_key_exists('strict_hierarchy', $ranking) ? $this->toBool($ranking['strict_hierarchy']) : true,
                 'cost_weight' => is_array($ranking['cost_weight'] ?? null) ? $ranking['cost_weight'] : ['low' => 1, 'medium' => 3, 'high' => 6],
                 'impact_weight' => is_array($ranking['impact_weight'] ?? null) ? $ranking['impact_weight'] : ['low' => 1, 'medium' => 3, 'high' => 5],
                 'hierarchy_bonus' => is_array($ranking['hierarchy_bonus'] ?? null) ? $ranking['hierarchy_bonus'] : ['elimination' => 7, 'substitution' => 5, 'engineering' => 4, 'administrative' => 2, 'ppe' => 0],
+            ],
+            'feasibility' => [
+                'minimum_total_score' => isset($feasibility['minimum_total_score']) ? (float) $feasibility['minimum_total_score'] : 60.0,
+                'minimum_policy_compliance' => isset($feasibility['minimum_policy_compliance']) ? (float) $feasibility['minimum_policy_compliance'] : 55.0,
+                'weights' => is_array($feasibility['weights'] ?? null) ? $feasibility['weights'] : [
+                    'hazard_fit' => 0.20,
+                    'injury_likelihood_alignment' => 0.15,
+                    'policy_compliance' => 0.15,
+                    'worker_burden' => 0.10,
+                    'industry_recognition' => 0.10,
+                    'reliability_durability' => 0.10,
+                    'availability' => 0.10,
+                    'cost_effectiveness' => 0.10,
+                ],
+            ],
+            'interim' => [
+                'max_days_without_interim' => isset($interim['max_days_without_interim']) ? max(1, (int) $interim['max_days_without_interim']) : 14,
+                'allow_ppe_interim' => array_key_exists('allow_ppe_interim', $interim) ? $this->toBool($interim['allow_ppe_interim']) : true,
             ],
             'catalog' => $catalog,
         ];

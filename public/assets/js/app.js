@@ -1672,7 +1672,16 @@ document.addEventListener('alpine:init', () => {
           cost_penalty_factor: 1.1,
           impact_penalty_factor: 0.8,
           reduction_factor: 1.0,
-        }
+          strict_hierarchy: true,
+        },
+        feasibility: {
+          minimum_total_score: 60,
+          minimum_policy_compliance: 55,
+        },
+        interim: {
+          max_days_without_interim: 14,
+          allow_ppe_interim: true,
+        },
       },
     },
     saving: false, saveSuccess: '', saveError: '',
@@ -1710,6 +1719,8 @@ document.addEventListener('alpine:init', () => {
       const rp = this.org.recommendation_policy || {};
       const thresholds = rp.thresholds || {};
       const ranking = rp.ranking || {};
+      const feasibility = rp.feasibility || {};
+      const interim = rp.interim || {};
 
       this.form = {
         name:                this.org.name || '',
@@ -1734,7 +1745,16 @@ document.addEventListener('alpine:init', () => {
             cost_penalty_factor: Number(ranking.cost_penalty_factor ?? 1.1),
             impact_penalty_factor: Number(ranking.impact_penalty_factor ?? 0.8),
             reduction_factor: Number(ranking.reduction_factor ?? 1.0),
-          }
+            strict_hierarchy: ranking.strict_hierarchy !== false,
+          },
+          feasibility: {
+            minimum_total_score: Number(feasibility.minimum_total_score ?? 60),
+            minimum_policy_compliance: Number(feasibility.minimum_policy_compliance ?? 55),
+          },
+          interim: {
+            max_days_without_interim: Number(interim.max_days_without_interim ?? 14),
+            allow_ppe_interim: interim.allow_ppe_interim !== false,
+          },
         },
       };
     },

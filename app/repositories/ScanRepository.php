@@ -39,7 +39,8 @@ final class ScanRepository
         $controls = $this->db->fetchAllAssociative(
             'SELECT id, scan_id, rank_order, hierarchy_level, control_code, title,
                     expected_risk_reduction_pct, implementation_cost, time_to_deploy_days,
-                    throughput_impact, rationale, evidence_json, recommendation_engine_version, created_at
+                    throughput_impact, control_type, feasibility_score, feasibility_status,
+                    interim_for_control_code, rationale, evidence_json, recommendation_engine_version, created_at
              FROM scan_control_recommendations
              WHERE scan_id = :scan_id
              ORDER BY rank_order ASC, id ASC',
