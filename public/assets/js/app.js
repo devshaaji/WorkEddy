@@ -2413,6 +2413,79 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
+  /* Copilot page */
+  Alpine.data('copilotPage', () => ({
+    loading: false,
+    error: '',
+    response: null,
+    form: {
+      persona: 'supervisor',
+      window_days: 7,
+      scan_id: '',
+      baseline_scan_id: '',
+    },
+
+    async run() {
+      this.error = '';
+      this.loading = true;
+      try {
+        const persona = String(this.form.persona || 'supervisor').replace(/_/g, '-');
+        const payload = {};
+
+        if (this.form.window_days !== '' && this.form.window_days !== null) {
+          payload.window_days = Number(this.form.window_days);
+        }
+        if (this.form.scan_id !== '' && this.form.scan_id !== null) {
+          payload.scan_id = Number(this.form.scan_id);
+        }
+        if (this.form.baseline_scan_id !== '' && this.form.baseline_scan_id !== null) {
+          payload.baseline_scan_id = Number(this.form.baseline_scan_id);
+        }
+
+        if (this.form.persona === 'auditor' && !payload.scan_id) {
+          throw new Error('Scan ID is required for auditor persona.');
+        }
+
+        this.response = await api('/copilot/' + persona, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      } catch (e) {
+        this.error = e.message || 'Unable to run copilot request.';
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    llmStatusClass(status) {
+      const value = String(status || '').toLowerCase();
+      if (value === 'success') return 'badge-soft-success';
+      if (value === 'fallback') return 'badge-soft-warning';
+      if (value === 'disabled') return 'badge-soft-secondary';
+      return 'badge-soft-secondary';
+    },
+
+    citationKey(citation, index) {
+      if (!citation || typeof citation !== 'object') return String(index);
+      return [
+        citation.source_type || 'source',
+        citation.source_id || 'id',
+        citation.metric || 'metric',
+        String(index),
+      ].join(':');
+    },
+
+    confidencePct(value) {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return '0%';
+      return Math.round(Math.max(0, Math.min(1, num)) * 100) + '%';
+    },
+
+    pretty(v) {
+      return JSON.stringify(v ?? {}, null, 2);
+    },
+  }));
+
   /* â”€â”€ Admin System Settings page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
   /* Admin system settings page */
