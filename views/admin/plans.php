@@ -55,7 +55,8 @@ ob_start();
           <tr>
             <th>Name</th>
             <th>Price</th>
-            <th class="d-none d-md-table-cell">Scan Limit</th>
+            <th class="d-none d-lg-table-cell">Scan Limit</th>
+            <th class="d-none d-xl-table-cell">Operational Guardrails</th>
             <th class="d-none d-md-table-cell">Billing Cycle</th>
             <th>Status</th>
             <th class="text-end">Actions</th>
@@ -70,8 +71,15 @@ ob_start();
               <td>
                 <span x-text="plan.price > 0 ? '$' + plan.price : 'Free'"></span>
               </td>
-              <td class="d-none d-md-table-cell text-muted"
+              <td class="d-none d-lg-table-cell text-muted"
                   x-text="plan.scan_limit ? plan.scan_limit.toLocaleString() : 'Unlimited'"></td>
+              <td class="d-none d-xl-table-cell">
+                <div class="d-flex flex-wrap gap-1">
+                  <template x-for="item in planHighlights(plan)" :key="item">
+                    <span class="badge badge-soft-secondary" x-text="item"></span>
+                  </template>
+                </div>
+              </td>
               <td class="d-none d-md-table-cell">
                 <span class="text-capitalize" x-text="plan.billing_cycle || '—'"></span>
               </td>
@@ -122,7 +130,7 @@ ob_start();
 
   <!-- Create / Edit Plan Modal -->
   <div class="modal fade" id="planModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" x-text="editingPlan ? 'Edit Plan' : 'New Plan'"></h5>
@@ -157,6 +165,30 @@ ob_start();
             <input class="form-control" id="planScanLimit" type="number"
                    min="0" x-model="form.scan_limit" placeholder="Leave blank for unlimited">
             <div class="form-text">Leave empty for unlimited scans.</div>
+          </div>
+          <div class="border rounded-3 p-3 mb-3 bg-light-subtle">
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+              <div>
+                <h6 class="mb-1">Operational billing guardrails</h6>
+                <p class="text-muted small mb-0">These limits drive worker usage, copilot budget, retention, and organization capacity checks.</p>
+              </div>
+              <span class="badge badge-soft-secondary">Blank = unlimited/default</span>
+            </div>
+            <div class="row g-3">
+              <template x-for="field in billingLimitFields" :key="field.key">
+                <div class="col-md-6 col-xl-4">
+                  <label class="form-label" :for="'plan-limit-' + field.key" x-text="field.label"></label>
+                  <input class="form-control"
+                         :id="'plan-limit-' + field.key"
+                         type="number"
+                         min="0"
+                         step="1"
+                         x-model="form.billing_limits[field.key]"
+                         :placeholder="limitPlaceholder(field)">
+                  <div class="form-text" x-text="field.help"></div>
+                </div>
+              </template>
+            </div>
           </div>
           <div class="mb-1">
             <label class="form-label" for="planStatus">Status</label>

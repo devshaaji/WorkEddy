@@ -1,0 +1,21 @@
+{
+  "queue_name": "scan_jobs",
+  "routes": {
+    "next_job": "/internal/worker/jobs/next",
+    "complete": "/internal/worker/scans/complete",
+    "fail": "/internal/worker/scans/fail"
+  },
+  "payloads": {
+    "job": {
+      "required": ["scan_id", "organization_id", "video_path", "model"]
+    },
+    "complete": {
+      "required": ["scan_id", "organization_id", "metrics"],
+      "optional": ["model", "pose_video_path"]
+    },
+    "fail": {
+      "required": ["scan_id", "organization_id"],
+      "optional": ["error_message"]
+    }
+  }
+}

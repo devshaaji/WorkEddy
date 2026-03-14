@@ -177,7 +177,7 @@ ob_start();
         </div>
       </div>
 
-      <div class="card" x-show="summary" x-cloak>
+      <div class="card" x-show="hasSummary" x-cloak>
         <div class="card-header"><h6 class="mb-0 fw-semibold">Team Snapshot (Admin/Supervisor)</h6></div>
         <div class="card-body">
           <div class="row g-3">

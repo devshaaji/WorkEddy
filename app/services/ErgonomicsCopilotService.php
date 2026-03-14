@@ -15,6 +15,7 @@ final class ErgonomicsCopilotService
         private readonly CopilotDeterministicService $deterministic,
         private readonly CopilotNarrativeService $narrative,
         private readonly CopilotAuditService $audit,
+        private readonly ?UsageMeterService $usageMeter = null,
     ) {}
 
     /**
@@ -25,7 +26,8 @@ final class ErgonomicsCopilotService
     {
         $normalizedPersona = $this->normalizePersona($persona);
         $bundle = $this->deterministic->build($organizationId, $normalizedPersona, $payload);
-        $narrative = $this->narrative->generate($normalizedPersona, $bundle);
+        $llmBudget = $this->usageMeter?->llmBudget($organizationId);
+        $narrative = $this->narrative->generate($normalizedPersona, $bundle, $llmBudget);
 
         $response = [
             'persona' => $normalizedPersona,
@@ -52,7 +54,8 @@ final class ErgonomicsCopilotService
             is_array($narrative['prompt_payload'] ?? null) ? $narrative['prompt_payload'] : [],
             is_array($narrative['raw_response'] ?? null) ? $narrative['raw_response'] : null,
             $response,
-            (string) ($response['llm']['status'] ?? 'fallback')
+            (string) ($response['llm']['status'] ?? 'fallback'),
+            is_array($narrative['usage'] ?? null) ? $narrative['usage'] : [],
         );
 
         $response['audit_id'] = $auditId;
@@ -70,4 +73,3 @@ final class ErgonomicsCopilotService
         return $normalized;
     }
 }
-

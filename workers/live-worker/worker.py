@@ -9,30 +9,47 @@ them back to the PHP API. PHP remains the single scoring authority.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
+import sys
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+try:
+    import cv2
+except ModuleNotFoundError:  # pragma: no cover - exercised in non-worker envs
+    cv2 = None
+
 from pose_engines import EngineRuntimeConfig, PoseEngineManager
 
 ROOT = Path(__file__).resolve().parent
+SHARED_ROOT = ROOT.parent / "shared"
+
+if str(SHARED_ROOT) not in sys.path:
+    sys.path.append(str(SHARED_ROOT))
+
+from worker_contract import load_contract, route, validate_payload  # noqa: E402
 
 API_BASE_URL = os.getenv("WORKER_API_BASE_URL", "http://nginx").rstrip("/")
 API_TIMEOUT_SECONDS = float(os.getenv("WORKER_API_TIMEOUT_SECONDS", "20"))
 
-NEXT_JOB_ENDPOINT = "/api/v1/internal/live-worker/jobs/next"
-FRAMES_ENDPOINT   = "/api/v1/internal/live-worker/frames"
-COMPLETE_ENDPOINT = "/api/v1/internal/live-worker/sessions/complete"
-FAIL_ENDPOINT     = "/api/v1/internal/live-worker/sessions/fail"
+LIVE_CONTRACT = load_contract("live-worker")
+NEXT_JOB_ENDPOINT = f"/api/v1{route(LIVE_CONTRACT, 'next_job')}"
+NEXT_BATCH_ENDPOINT = f"/api/v1{route(LIVE_CONTRACT, 'next_batch')}"
+FRAMES_ENDPOINT = f"/api/v1{route(LIVE_CONTRACT, 'frames')}"
+COMPLETE_ENDPOINT = f"/api/v1{route(LIVE_CONTRACT, 'complete')}"
+FAIL_ENDPOINT = f"/api/v1{route(LIVE_CONTRACT, 'fail')}"
 
 
 # ── Decoupled engine manager ────────────────────────────────────────────
 _engine_manager = PoseEngineManager()
 _session_states: dict[int, dict[str, Any]] = {}
+_engine_log_keys: set[tuple[str, str | None, bool]] = set()
 
 ANGLE_KEYS = ("trunk_angle", "neck_angle", "upper_arm_angle", "lower_arm_angle", "wrist_angle")
 
@@ -48,10 +65,13 @@ def _get_engine(
         multi_person_mode=multi_person_mode,
     )
     engine = _engine_manager.get_engine(engine_name, runtime_cfg)
-    print(
-        "[live-worker] initialised engine: "
-        f"{engine_name} (variant={model_variant or 'default'}, multi_person={multi_person_mode})"
-    )
+    log_key = (engine_name, model_variant, multi_person_mode)
+    if log_key not in _engine_log_keys:
+        print(
+            "[live-worker] initialised engine: "
+            f"{engine_name} (variant={model_variant or 'default'}, multi_person={multi_person_mode})"
+        )
+        _engine_log_keys.add(log_key)
     return engine
 
 
@@ -174,22 +194,42 @@ def fetch_next_job() -> dict[str, Any] | None:
     if job is None or not isinstance(job, dict):
         return None
 
+    validate_payload(LIVE_CONTRACT, "job", job)
+
+    return job
+
+
+def fetch_next_frame_batch() -> dict[str, Any] | None:
+    """Poll the PHP API for the next browser-uploaded frame batch."""
+    response = _api_request(NEXT_BATCH_ENDPOINT, method="POST", payload={}, allow_no_content=True)
+    if response is None:
+        return None
+
+    job = response.get("data")
+    if job is None or not isinstance(job, dict):
+        return None
+
+    validate_payload(LIVE_CONTRACT, "frame_batch", job)
+
     return job
 
 
 def report_frames(
     session_id: int,
     organization_id: int,
-    model: str,
     frames: list[dict[str, Any]],
+    telemetry: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Report a batch of analysed frames to the PHP API."""
-    return _api_post(FRAMES_ENDPOINT, {
+    payload = {
         "session_id":      session_id,
         "organization_id": organization_id,
-        "model":           model,
         "frames":          frames,
-    })
+    }
+    if telemetry:
+        payload["telemetry"] = telemetry
+    validate_payload(LIVE_CONTRACT, "frames", payload)
+    return _api_post(FRAMES_ENDPOINT, payload)
 
 
 def complete_session(
@@ -198,11 +238,13 @@ def complete_session(
     summary_metrics: dict[str, Any],
 ) -> dict[str, Any]:
     """Mark a live session as completed with summary metrics."""
-    return _api_post(COMPLETE_ENDPOINT, {
+    payload = {
         "session_id":      session_id,
         "organization_id": organization_id,
         "summary_metrics": summary_metrics,
-    })
+    }
+    validate_payload(LIVE_CONTRACT, "complete", payload)
+    return _api_post(COMPLETE_ENDPOINT, payload)
 
 
 def fail_session(
@@ -211,11 +253,13 @@ def fail_session(
     error_message: str = "",
 ) -> None:
     """Mark a live session as failed."""
-    _api_post(FAIL_ENDPOINT, {
+    payload = {
         "session_id":      session_id,
         "organization_id": organization_id,
         "error_message":   (error_message or "Live processing failed").strip(),
-    })
+    }
+    validate_payload(LIVE_CONTRACT, "fail", payload)
+    _api_post(FAIL_ENDPOINT, payload)
 
 
 def process_live_session(job: dict[str, Any]) -> None:
@@ -264,19 +308,192 @@ def process_live_session(job: dict[str, Any]) -> None:
     print(f"[live-worker] engine ready for session {session_id}")
 
 
+def _decode_jpeg_base64(image_base64: str) -> Any | None:
+    """Decode a base64 JPEG payload into a BGR OpenCV frame."""
+    if cv2 is None:
+        return None
+
+    try:
+        blob = base64.b64decode(image_base64, validate=True)
+    except Exception:  # noqa: BLE001
+        return None
+
+    array = np.frombuffer(blob, dtype=np.uint8)
+    if array.size == 0:
+        return None
+
+    return cv2.imdecode(array, cv2.IMREAD_COLOR)
+
+
+def _build_worker_telemetry(
+    *,
+    processed: int,
+    skipped: int,
+    decode_failures: int,
+    worker_lags_ms: list[float],
+) -> dict[str, Any]:
+    telemetry: dict[str, Any] = {
+        "worker_processed_frames": max(0, int(processed)),
+        "worker_skipped_frames": max(0, int(skipped)),
+        "worker_decode_failures": max(0, int(decode_failures)),
+        "worker_lag_samples": len(worker_lags_ms),
+        "last_worker_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+
+    if worker_lags_ms:
+        telemetry["worker_lag_ms_avg"] = round(sum(worker_lags_ms) / len(worker_lags_ms), 2)
+        telemetry["worker_lag_ms_max"] = round(max(worker_lags_ms), 2)
+    else:
+        telemetry["worker_lag_ms_avg"] = 0.0
+        telemetry["worker_lag_ms_max"] = 0.0
+
+    return telemetry
+
+
+def _is_stale_frame_batch(
+    worker_lags_ms: list[float],
+    *,
+    max_e2e_latency_ms: int,
+    multiplier: float,
+) -> bool:
+    if not worker_lags_ms:
+        return False
+
+    threshold = max(1.0, float(max_e2e_latency_ms) * max(0.5, multiplier))
+    return min(worker_lags_ms) > threshold
+
+
+def process_uploaded_frame_batch(job: dict[str, Any]) -> dict[str, Any]:
+    """Decode and process a browser-uploaded frame batch."""
+    frames = job.get("frames", [])
+    if not isinstance(frames, list) or len(frames) == 0:
+        return {"processed": 0, "skipped": 0, "avg_latency_ms": 0.0}
+
+    valid_items: list[dict[str, Any]] = []
+    skipped = 0
+    decode_failures = 0
+    worker_lags_ms: list[float] = []
+    now_ms = int(time.time() * 1000)
+    stale_multiplier = float(job.get("stale_batch_drop_multiplier", 1.0) or 1.0)
+    max_e2e_latency_ms = int(job.get("max_e2e_latency_ms", 2000))
+
+    for item in frames:
+        if not isinstance(item, dict):
+            skipped += 1
+            continue
+
+        image_base64 = str(item.get("image_jpeg_base64", "")).strip()
+        frame_number = int(item.get("frame_number", 0))
+        if image_base64 == "" or frame_number <= 0:
+            skipped += 1
+            continue
+
+        captured_at_ms = int(item.get("captured_at_ms", 0) or 0)
+        if captured_at_ms > 0:
+            worker_lags_ms.append(float(max(0, now_ms - captured_at_ms)))
+        valid_items.append(item)
+
+    if valid_items and _is_stale_frame_batch(
+        worker_lags_ms,
+        max_e2e_latency_ms=max_e2e_latency_ms,
+        multiplier=stale_multiplier,
+    ):
+        stale_frames = len(valid_items)
+        telemetry = _build_worker_telemetry(
+            processed=0,
+            skipped=skipped + stale_frames,
+            decode_failures=decode_failures,
+            worker_lags_ms=worker_lags_ms,
+        )
+        telemetry["stale_frame_batches_dropped"] = 1
+        telemetry["stale_frames_dropped"] = stale_frames
+        report_frames(
+            int(job["session_id"]),
+            int(job["organization_id"]),
+            [],
+            telemetry,
+        )
+        return {
+            "processed": 0,
+            "skipped": skipped + stale_frames,
+            "avg_latency_ms": 0.0,
+            "telemetry": telemetry,
+            "dropped_reason": "stale_batch",
+        }
+
+    frame_numbers: list[int] = []
+    frames_bgr: list[Any] = []
+
+    for item in valid_items:
+        frame = _decode_jpeg_base64(str(item.get("image_jpeg_base64", "")).strip())
+        if frame is None:
+            skipped += 1
+            decode_failures += 1
+            continue
+
+        frames_bgr.append(frame)
+        frame_numbers.append(int(item.get("frame_number", 0)))
+
+    if not frames_bgr:
+        telemetry = _build_worker_telemetry(
+            processed=0,
+            skipped=skipped,
+            decode_failures=decode_failures,
+            worker_lags_ms=worker_lags_ms,
+        )
+        report_frames(
+            int(job["session_id"]),
+            int(job["organization_id"]),
+            [],
+            telemetry,
+        )
+        return {"processed": 0, "skipped": skipped, "avg_latency_ms": 0.0, "telemetry": telemetry}
+
+    telemetry = _build_worker_telemetry(
+        processed=0,
+        skipped=skipped,
+        decode_failures=decode_failures,
+        worker_lags_ms=worker_lags_ms,
+    )
+
+    result = process_frame_batch(
+        engine_name=str(job.get("pose_engine", "yolo26")),
+        frames_bgr=frames_bgr,
+        session_id=int(job["session_id"]),
+        organization_id=int(job["organization_id"]),
+        model_variant=str(job.get("model_variant", "")).strip() or None,
+        multi_person_mode=bool(job.get("multi_person_mode", False)),
+        smoothing_alpha=float(job.get("smoothing_alpha", 0.35)),
+        min_joint_confidence=float(job.get("min_joint_confidence", 0.45)),
+        tracking_max_distance=float(job.get("tracking_max_distance", 0.15)),
+        frame_numbers=frame_numbers,
+        max_e2e_latency_ms=max_e2e_latency_ms,
+        telemetry=telemetry,
+    )
+    result["skipped"] = int(result.get("skipped", 0)) + skipped
+    result["telemetry"] = _build_worker_telemetry(
+        processed=int(result.get("processed", 0)),
+        skipped=int(result.get("skipped", 0)),
+        decode_failures=decode_failures,
+        worker_lags_ms=worker_lags_ms,
+    )
+    return result
+
+
 def process_frame_batch(
     engine_name: str,
     frames_bgr: list[Any],
     session_id: int,
     organization_id: int,
-    model: str,
     model_variant: str | None = None,
     multi_person_mode: bool = False,
     smoothing_alpha: float = 0.35,
     min_joint_confidence: float = 0.45,
     tracking_max_distance: float = 0.15,
     start_frame_number: int = 0,
+    frame_numbers: list[int] | None = None,
     max_e2e_latency_ms: int = 2000,
+    telemetry: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Process a batch of BGR frames through the selected pose engine.
 
@@ -286,7 +503,7 @@ def process_frame_batch(
         "mediapipe" or "yolo26"
     frames_bgr:
         List of numpy BGR frames to process.
-    session_id, organization_id, model:
+    session_id, organization_id:
         Identifiers for the PHP API callback.
     start_frame_number:
         Frame counter offset for this batch.
@@ -332,15 +549,25 @@ def process_frame_batch(
         if metrics is None:
             continue
 
+        frame_number = (
+            int(frame_numbers[i])
+            if frame_numbers is not None and i < len(frame_numbers)
+            else start_frame_number + i
+        )
+
         scored_frames.append({
-            "frame_number": start_frame_number + i,
+            "frame_number": frame_number,
             "metrics":      metrics,
             "latency_ms":   metrics.get("latency_ms", 0.0),
         })
 
+    telemetry_payload = dict(telemetry or {})
+    telemetry_payload["worker_processed_frames"] = int(telemetry_payload.get("worker_processed_frames", 0)) + len(scored_frames)
+    telemetry_payload["worker_skipped_frames"] = int(telemetry_payload.get("worker_skipped_frames", 0)) + skipped
+
     # Report to PHP API
-    if scored_frames:
-        report_frames(session_id, organization_id, model, scored_frames)
+    if scored_frames or telemetry_payload:
+        report_frames(session_id, organization_id, scored_frames, telemetry_payload)
 
     avg_latency = 0.0
     if scored_frames:
@@ -350,4 +577,5 @@ def process_frame_batch(
         "processed":      len(scored_frames),
         "skipped":        skipped,
         "avg_latency_ms": round(avg_latency, 2),
+        "telemetry":      telemetry_payload,
     }

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ergonomics Copilot - Output Analysis</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 lg:px-10 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M24 4C25.7818 14.2173 33.7827 22.2182 44 24C33.7827 25.7818 25.7818 33.7827 24 44C22.2182 33.7827 14.2173 25.7818 4 24C14.2173 22.2182 22.2182 14.2173 24 4Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight">Ergonomics Copilot</h2>
+</div>
+<div class="flex flex-1 justify-end items-center gap-6 lg:gap-8">
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors text-sm font-medium" href="#">Dashboard</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors text-sm font-medium" href="#">Scans</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors text-sm font-medium" href="#">Reports</a>
+</nav>
+<div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
+<button class="flex min-w-[120px] cursor-pointer items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold transition-all hover:bg-primary/90 shadow-sm">
+<span class="material-symbols-outlined text-sm mr-2">compare_arrows</span>
+<span class="truncate">Compare Scans</span>
+</button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-slate-100 dark:border-slate-800" data-alt="User profile avatar illustration" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBBA9O92ePjpEJQD6UMV45AEpq8qkDprkyofML9fL6pQ8RlwsR5irPKOEfRRosnXFspXDPG5TU_e7BIDkWPiILncZOXOZPeXFFnXppWlpEPwYE6ltcQr57vgRHXXxUTH2AB-H3pySDj7iIqA5AtvyMvfHbsnpeG1bD6Wj2g-WJ_aGEXH4Wc83fWs2SId91knvf9PY0ChYP8eEefcp2yjFWJpIjv6zfPaHJPZR4nksqkG2rYJmrfXWQqpk9pcTB1ODvtAVap2voQfV4");'></div>
+</div>
+</header>
+<main class="flex flex-1 flex-col lg:flex-row gap-6 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
+<!-- Left Sidebar: Scoped Request -->
+<aside class="w-full lg:w-80 flex flex-col gap-6">
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">tune</span>
+<h3 class="text-lg font-bold">Scoped Request</h3>
+</div>
+<div class="space-y-5">
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Persona</label>
+<div class="relative">
+<select class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-3 pl-4 pr-10 text-sm focus:ring-primary focus:border-primary appearance-none">
+<option>Warehouse Supervisor</option>
+<option>Safety Manager</option>
+<option>Executive Admin</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Window Days</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-3 px-4 text-sm focus:ring-primary focus:border-primary" type="number" value="7"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Target Scan ID</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-3 px-4 text-sm focus:ring-primary focus:border-primary" placeholder="e.g. SN-49201" type="text"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Baseline Scan ID</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-3 px-4 text-sm focus:ring-primary focus:border-primary" placeholder="e.g. SN-48000" type="text"/>
+</div>
+<button class="w-full bg-primary text-white font-bold py-4 rounded-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 hover:translate-y-[-2px] active:translate-y-0 transition-all mt-4">
+<span class="material-symbols-outlined">bolt</span>
+                            Run Copilot
+                        </button>
+</div>
+</div>
+<!-- Navigation/History Preview -->
+<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+<div class="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+<p class="text-xs font-bold uppercase tracking-widest text-slate-500">Recent Insights</p>
+</div>
+<div class="divide-y divide-slate-100 dark:divide-slate-800">
+<div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-3 group transition-colors">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary">history</span>
+<div class="flex-1">
+<p class="text-xs font-semibold">Morning Shift A</p>
+<p class="text-[10px] text-slate-500">2 hours ago</p>
+</div>
+</div>
+<div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-3 group transition-colors">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary">history</span>
+<div class="flex-1">
+<p class="text-xs font-semibold">Loading Dock Beta</p>
+<p class="text-[10px] text-slate-500">Yesterday</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content: Copilot Output -->
+<section class="flex-1 flex flex-col gap-6">
+<!-- Hero Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2 text-primary font-bold text-sm">
+<span class="material-symbols-outlined text-lg">auto_awesome</span>
+                            Copilot Analysis Active
+                        </div>
+<h1 class="text-3xl font-black tracking-tight">Executive Insight Report</h1>
+<p class="text-slate-500 text-sm">Automated ergonomic assessment for the last 7 days of operations.</p>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-lg h-10 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-bold shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+<span class="material-symbols-outlined text-sm mr-2">download</span> Export PDF
+                        </button>
+</div>
+</div>
+<!-- Executive Summary Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
+<p class="text-sm font-medium text-slate-500">Total Scans</p>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold">124</span>
+<span class="text-xs font-bold text-emerald-500 mb-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">trending_up</span> +12%
+                            </span>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border-l-4 border-l-rose-500 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
+<p class="text-sm font-medium text-slate-500">High Risk Scans</p>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold text-rose-500">8</span>
+<span class="text-xs font-bold text-rose-500 mb-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">warning</span> Critical
+                            </span>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-1">
+<p class="text-sm font-medium text-slate-500">Avg Compliance</p>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold">94.2%</span>
+<span class="text-xs font-bold text-emerald-500 mb-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">check_circle</span> Good
+                            </span>
+</div>
+</div>
+</div>
+<!-- Shift Risk Brief Grid -->
+<div>
+<h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">schedule</span>
+                        Shift Risk Brief (7d)
+                    </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Brief Card -->
+<div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 uppercase">Mon-Tue</span>
+<span class="material-symbols-outlined text-rose-500">error</span>
+</div>
+<h4 class="font-bold text-sm mb-1">Repetitive Strain</h4>
+<p class="text-xs text-slate-500 leading-relaxed">High volume of repetitive lifting detected during early sorting phases.</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 uppercase">Wed</span>
+<span class="material-symbols-outlined text-amber-500">warning</span>
+</div>
+<h4 class="font-bold text-sm mb-1">Static Posture</h4>
+<p class="text-xs text-slate-500 leading-relaxed">Extended periods of static torso rotation at station 4B identified.</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 uppercase">Thu-Fri</span>
+<span class="material-symbols-outlined text-emerald-500">check_circle</span>
+</div>
+<h4 class="font-bold text-sm mb-1">Optimal Range</h4>
+<p class="text-xs text-slate-500 leading-relaxed">Scan profiles show 100% adherence to height-safety protocols.</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 uppercase">Weekend</span>
+<span class="material-symbols-outlined text-slate-300">info</span>
+</div>
+<h4 class="font-bold text-sm mb-1">Baseline Drift</h4>
+<p class="text-xs text-slate-500 leading-relaxed">Minor variance from baseline noted but within safety tolerance levels.</p>
+</div>
+</div>
+</div>
+<!-- AI Narrative Section -->
+<div class="bg-slate-900 dark:bg-slate-950 text-white rounded-xl overflow-hidden relative">
+<!-- Subtle AI Background Glow -->
+<div class="absolute -right-20 -top-20 size-80 bg-primary/20 blur-[100px] rounded-full pointer-events-none"></div>
+<div class="absolute -left-20 -bottom-20 size-80 bg-blue-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+<div class="p-8 relative z-10">
+<div class="flex items-center gap-3 mb-6">
+<div class="size-10 rounded-lg bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined">psychology</span>
+</div>
+<div>
+<h3 class="text-xl font-bold">Narrative Analysis</h3>
+<p class="text-blue-300 text-sm">Powered by ErgoIntelligence™</p>
+</div>
+</div>
+<div class="space-y-6 text-slate-300 leading-relaxed max-w-4xl">
+<p class="text-lg italic font-medium text-white">
+                                "The primary ergonomic risk factor observed this week is concentrated in the lumber-spine region during palletizing operations between 09:00 and 11:30."
+                            </p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+<div>
+<h4 class="text-white font-bold mb-2 uppercase tracking-wide text-xs flex items-center gap-2">
+<span class="material-symbols-outlined text-xs text-primary">lightbulb</span> Core Insight
+                                    </h4>
+<p>Scan data reveals that the current conveyor belt height at Station 7 is forcing workers into a 15-degree forward lean. This has led to a 22% increase in micro-breaks requested by staff in this sector compared to the baseline.</p>
+</div>
+<div>
+<h4 class="text-white font-bold mb-2 uppercase tracking-wide text-xs flex items-center gap-2">
+<span class="material-symbols-outlined text-xs text-primary">priority_high</span> Action Required
+                                    </h4>
+<p>Recommend immediate adjustment of pallet jacks to Level 2 and implementing a rotation schedule every 90 minutes to mitigate the cumulative load on the spinal discs.</p>
+</div>
+</div>
+</div>
+<div class="mt-10 pt-6 border-t border-white/10 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<span class="text-xs text-slate-500">Scan Reference: #49201-B</span>
+<span class="text-xs text-slate-500">Confidence: 98.4%</span>
+</div>
+<button class="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
+                                View Technical Breakdown <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

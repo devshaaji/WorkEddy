@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use FastRoute\Dispatcher;
 use PHPUnit\Framework\TestCase;
 use WorkEddy\Core\Container;
+use WorkEddy\Services\ImprovementProofService;
 use WorkEddy\Repositories\ScanRepository;
 use WorkEddy\Services\Ergonomics\AssessmentEngine;
 use WorkEddy\Services\ScanComparisonService;
@@ -99,6 +100,6 @@ final class ScanCompareApiIntegrationTest extends TestCase
                 return false;
             });
 
-        return new ScanComparisonService(new ScanRepository($conn), new AssessmentEngine());
+        return new ScanComparisonService(new ScanRepository($conn), new AssessmentEngine(), new ImprovementProofService());
     }
 }

@@ -9,6 +9,7 @@ use WorkEddy\Contracts\QueueInterface;
 use WorkEddy\Helpers\InternalRequestAuth;
 use WorkEddy\Helpers\Response;
 use WorkEddy\Helpers\Validator;
+use WorkEddy\Helpers\WorkerContract;
 use WorkEddy\Services\LiveSessionService;
 
 /**
@@ -22,7 +23,6 @@ final class LiveWorkerController
     public function __construct(
         private readonly LiveSessionService $sessions,
         private readonly QueueInterface     $queue,
-        private readonly string             $queueName = 'live_session_jobs',
     ) {}
 
     /**
@@ -32,7 +32,7 @@ final class LiveWorkerController
     {
         InternalRequestAuth::requireWorkerToken();
 
-        $job = $this->queue->dequeue($this->queueName);
+        $job = $this->queue->dequeue(WorkerContract::liveQueueName());
         if ($job === null) {
             Response::noContent();
         }
@@ -41,23 +41,71 @@ final class LiveWorkerController
     }
 
     /**
+     * POST /api/v1/internal/live-worker/frame-batches/next — dequeue next browser frame batch.
+     */
+    public function nextFrameBatch(): never
+    {
+        InternalRequestAuth::requireWorkerToken();
+
+        for ($attempt = 0; $attempt < 20; $attempt++) {
+            $job = $this->queue->dequeue(WorkerContract::liveFrameQueueName());
+            if ($job === null) {
+                Response::noContent();
+            }
+
+            $sessionId = (int) ($job['session_id'] ?? 0);
+            $organizationId = (int) ($job['organization_id'] ?? 0);
+
+            if ($sessionId < 1 || $organizationId < 1) {
+                continue;
+            }
+
+            if (!$this->sessions->isSessionAcceptingFrames($organizationId, $sessionId)) {
+                continue;
+            }
+
+            Response::json(['data' => $job]);
+        }
+
+        Response::noContent();
+    }
+
+    /**
      * POST /api/v1/internal/live-worker/frames — report a batch of analysed frames.
      */
     public function reportFrames(array $body): never
     {
         InternalRequestAuth::requireWorkerToken();
-        Validator::requireFields($body, ['session_id', 'organization_id', 'frames']);
+        Validator::requireFields($body, WorkerContract::requiredFields('live', 'frames'));
 
         if (!is_array($body['frames'])) {
             throw new RuntimeException('frames must be an array');
         }
 
-        $result = $this->sessions->recordFrameBatch(
-            (int) $body['session_id'],
-            (int) $body['organization_id'],
-            isset($body['model']) ? (string) $body['model'] : 'reba',
-            $body['frames'],
-        );
+        $telemetry = $body['telemetry'] ?? [];
+        if (!is_array($telemetry)) {
+            throw new RuntimeException('telemetry must be a JSON object');
+        }
+
+        try {
+            $result = $this->sessions->recordFrameBatch(
+                (int) $body['session_id'],
+                (int) $body['organization_id'],
+                $body['frames'],
+                $telemetry,
+            );
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() === 'Session is not active') {
+                Response::json([
+                    'data' => [
+                        'ignored' => count($body['frames']),
+                        'reason' => 'session_inactive',
+                    ],
+                ]);
+            }
+
+            throw $e;
+        }
 
         Response::json(['data' => $result]);
     }
@@ -68,7 +116,7 @@ final class LiveWorkerController
     public function complete(array $body): never
     {
         InternalRequestAuth::requireWorkerToken();
-        Validator::requireFields($body, ['session_id', 'organization_id']);
+        Validator::requireFields($body, WorkerContract::requiredFields('live', 'complete'));
 
         $summary = $body['summary_metrics'] ?? [];
         if (!is_array($summary)) {
@@ -90,7 +138,7 @@ final class LiveWorkerController
     public function fail(array $body): never
     {
         InternalRequestAuth::requireWorkerToken();
-        Validator::requireFields($body, ['session_id', 'organization_id']);
+        Validator::requireFields($body, WorkerContract::requiredFields('live', 'fail'));
 
         $this->sessions->failSessionFromWorker(
             (int) $body['session_id'],

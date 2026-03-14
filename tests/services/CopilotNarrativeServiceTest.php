@@ -102,6 +102,53 @@ final class CopilotNarrativeServiceTest extends TestCase
         $this->assertNull($result['llm']['error_code']);
     }
 
+    public function testGenerateFallsBackWhenBillingBudgetDisallowsLlm(): void
+    {
+        $service = new CopilotNarrativeService(
+            static fn (): array => [
+                'choices' => [[
+                    'message' => [
+                        'content' => '{"executive_summary":"A","why_this_matters":"B","recommended_actions_text":"C"}',
+                    ],
+                ]],
+            ]
+        );
+
+        $result = $service->generate('supervisor', $this->bundle(), [
+            'allowed' => false,
+            'error_code' => 'llm_request_limit_exceeded',
+        ]);
+
+        $this->assertSame('fallback', $result['llm']['status']);
+        $this->assertSame('llm_request_limit_exceeded', $result['llm']['error_code']);
+        $this->assertSame(0, $result['llm']['request_count']);
+    }
+
+    public function testGenerateCapturesTokenUsageWhenAvailable(): void
+    {
+        $service = new CopilotNarrativeService(
+            static fn (): array => [
+                'choices' => [[
+                    'message' => [
+                        'content' => '{"executive_summary":"A","why_this_matters":"B","recommended_actions_text":"C"}',
+                    ],
+                ]],
+                'usage' => [
+                    'prompt_tokens' => 120,
+                    'completion_tokens' => 80,
+                    'total_tokens' => 200,
+                ],
+            ]
+        );
+
+        $result = $service->generate('supervisor', $this->bundle());
+
+        $this->assertSame(1, $result['llm']['request_count']);
+        $this->assertSame(120, $result['llm']['prompt_tokens']);
+        $this->assertSame(80, $result['llm']['completion_tokens']);
+        $this->assertSame(200, $result['llm']['total_tokens']);
+    }
+
     /** @return array<string,mixed> */
     private function bundle(): array
     {

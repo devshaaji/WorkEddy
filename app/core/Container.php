@@ -204,6 +204,9 @@ final class Container
         return $this->make('usageMeter', fn () => new UsageMeterService(
             $this->workspaceRepo(),
             $this->billingPeriods(),
+            $this->liveSessionRepo(),
+            $this->copilotAuditRepo(),
+            $this->userRepo(),
         ));
     }
 
@@ -274,12 +277,12 @@ final class Container
             $this->assessmentEngine(),
             $this->usageMeter(),
             $this->queue(),
+            $this->improvementProofService(),
             $this->cache(),
             (int) ((require __DIR__ . '/../config/cache.php')['ttl'] ?? 300),
             $this->workspaceRepo(),
             $this->controlRecommendationRepo(),
             $this->controlRecommendationEngine(),
-            $this->improvementProofService(),
             $this->videoService(),
         ));
     }
@@ -343,6 +346,7 @@ final class Container
             $this->copilotDeterministicService(),
             $this->copilotNarrativeService(),
             $this->copilotAuditService(),
+            $this->usageMeter(),
         ));
     }
 
@@ -373,10 +377,10 @@ final class Container
             $this->liveSessionRepo(),
             $this->taskRepo(),
             $this->workspaceRepo(),
-            $this->assessmentEngine(),
             $this->queue(),
-            $this->cache(),
             (array) (require __DIR__ . '/../config/live.php'),
+            $this->usageMeter(),
+            $this->cache(),
         ));
     }
 
@@ -512,7 +516,6 @@ final class Container
         return $this->make('liveWorkerCtrl', fn () => new LiveWorkerController(
             $this->liveSessionService(),
             $this->queue(),
-            (string) ((require __DIR__ . '/../config/live.php')['queue_name'] ?? 'live_session_jobs'),
         ));
     }
 

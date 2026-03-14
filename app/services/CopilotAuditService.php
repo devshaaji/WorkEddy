@@ -20,6 +20,7 @@ final class CopilotAuditService
      * @param array<string,mixed> $llmPrompt
      * @param array<string,mixed>|null $llmRawResponse
      * @param array<string,mixed> $responsePayload
+     * @param array<string,mixed> $llmUsage
      */
     public function log(
         int $organizationId,
@@ -30,7 +31,8 @@ final class CopilotAuditService
         array $llmPrompt,
         ?array $llmRawResponse,
         array $responsePayload,
-        string $llmStatus
+        string $llmStatus,
+        array $llmUsage = [],
     ): string {
         $auditId = $this->uuidV4();
 
@@ -61,6 +63,10 @@ final class CopilotAuditService
             'llm_response_redacted' => $rawStored,
             'response_payload_redacted' => $responseStored,
             'llm_status' => $status,
+            'llm_request_count' => max(0, (int) ($llmUsage['request_count'] ?? 0)),
+            'llm_prompt_tokens' => isset($llmUsage['prompt_tokens']) ? max(0, (int) $llmUsage['prompt_tokens']) : null,
+            'llm_completion_tokens' => isset($llmUsage['completion_tokens']) ? max(0, (int) $llmUsage['completion_tokens']) : null,
+            'llm_total_tokens' => isset($llmUsage['total_tokens']) ? max(0, (int) $llmUsage['total_tokens']) : null,
         ]);
 
         return $auditId;

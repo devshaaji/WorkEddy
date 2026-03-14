@@ -23,11 +23,37 @@ final class CopilotNarrativeService
      * @param array<string,mixed> $deterministicBundle
      * @return array<string,mixed>
      */
-    public function generate(string $persona, array $deterministicBundle): array
+    public function generate(string $persona, array $deterministicBundle, ?array $llmBudget = null): array
     {
         $enabled = $this->envBool('COPILOT_LLM_ENABLED', true);
         $model = trim((string) (getenv('COPILOT_LLM_MODEL') ?: 'gpt-4.1-mini'));
         $timeoutMs = max(1000, (int) (getenv('COPILOT_LLM_TIMEOUT_MS') ?: 6000));
+        $emptyUsage = [
+            'request_count' => 0,
+            'prompt_tokens' => null,
+            'completion_tokens' => null,
+            'total_tokens' => null,
+        ];
+
+        if (is_array($llmBudget) && ($llmBudget['allowed'] ?? true) !== true) {
+            return [
+                'narrative' => $this->fallbackNarrative($deterministicBundle),
+                'llm' => [
+                    'enabled' => $enabled,
+                    'model' => $model,
+                    'status' => 'fallback',
+                    'latency_ms' => 0,
+                    'error_code' => (string) ($llmBudget['error_code'] ?? 'plan_limit_exceeded'),
+                    'request_count' => 0,
+                    'prompt_tokens' => null,
+                    'completion_tokens' => null,
+                    'total_tokens' => null,
+                ],
+                'prompt_payload' => [],
+                'raw_response' => null,
+                'usage' => $emptyUsage,
+            ];
+        }
 
         if (!$enabled) {
             return [
@@ -38,13 +64,18 @@ final class CopilotNarrativeService
                     'status' => 'disabled',
                     'latency_ms' => 0,
                     'error_code' => null,
+                    'request_count' => 0,
+                    'prompt_tokens' => null,
+                    'completion_tokens' => null,
+                    'total_tokens' => null,
                 ],
                 'prompt_payload' => [],
                 'raw_response' => null,
+                'usage' => $emptyUsage,
             ];
         }
 
-        $apiKey = trim((string) (getenv('OPENAI_API_KEY') ?: ''));
+        $apiKey = trim((string) (getenv('COPILOT_API_KEY') ?: getenv('OPENAI_API_KEY') ?: ''));
         if ($apiKey === '') {
             return [
                 'narrative' => $this->fallbackNarrative($deterministicBundle),
@@ -54,9 +85,14 @@ final class CopilotNarrativeService
                     'status' => 'fallback',
                     'latency_ms' => 0,
                     'error_code' => 'missing_api_key',
+                    'request_count' => 0,
+                    'prompt_tokens' => null,
+                    'completion_tokens' => null,
+                    'total_tokens' => null,
                 ],
                 'prompt_payload' => [],
                 'raw_response' => null,
+                'usage' => $emptyUsage,
             ];
         }
 
@@ -66,6 +102,7 @@ final class CopilotNarrativeService
         try {
             $raw = $this->sendRequest($promptPayload, $timeoutMs);
             $latency = (int) round((microtime(true) - $start) * 1000);
+            $usage = $this->extractUsage($raw);
 
             $content = $this->extractMessageContent($raw);
             $parsed = $this->parseNarrative($content);
@@ -78,9 +115,14 @@ final class CopilotNarrativeService
                     'status' => 'success',
                     'latency_ms' => $latency,
                     'error_code' => null,
+                    'request_count' => $usage['request_count'],
+                    'prompt_tokens' => $usage['prompt_tokens'],
+                    'completion_tokens' => $usage['completion_tokens'],
+                    'total_tokens' => $usage['total_tokens'],
                 ],
                 'prompt_payload' => $promptPayload,
                 'raw_response' => $raw,
+                'usage' => $usage,
             ];
         } catch (RuntimeException $e) {
             $latency = (int) round((microtime(true) - $start) * 1000);
@@ -92,9 +134,14 @@ final class CopilotNarrativeService
                     'status' => 'fallback',
                     'latency_ms' => $latency,
                     'error_code' => $e->getMessage(),
+                    'request_count' => 0,
+                    'prompt_tokens' => null,
+                    'completion_tokens' => null,
+                    'total_tokens' => null,
                 ],
                 'prompt_payload' => $promptPayload,
                 'raw_response' => null,
+                'usage' => $emptyUsage,
             ];
         }
     }
@@ -158,8 +205,8 @@ final class CopilotNarrativeService
             throw new RuntimeException('curl_unavailable');
         }
 
-        $apiKey = trim((string) (getenv('OPENAI_API_KEY') ?: ''));
-        $baseUrl = rtrim((string) (getenv('OPENAI_BASE_URL') ?: 'https://api.openai.com/v1'), '/');
+        $apiKey = trim((string) (getenv('COPILOT_API_KEY') ?: getenv('OPENAI_API_KEY') ?: ''));
+        $baseUrl = rtrim((string) (getenv('COPILOT_BASE_URL') ?: 'https://api.openai.com/v1'), '/');
         $url = $baseUrl . '/chat/completions';
 
         $ch = curl_init($url);
@@ -257,6 +304,22 @@ final class CopilotNarrativeService
     }
 
     /**
+     * @param array<string,mixed> $response
+     * @return array{request_count:int,prompt_tokens:?int,completion_tokens:?int,total_tokens:?int}
+     */
+    private function extractUsage(array $response): array
+    {
+        $usage = is_array($response['usage'] ?? null) ? $response['usage'] : [];
+
+        return [
+            'request_count' => 1,
+            'prompt_tokens' => isset($usage['prompt_tokens']) ? max(0, (int) $usage['prompt_tokens']) : null,
+            'completion_tokens' => isset($usage['completion_tokens']) ? max(0, (int) $usage['completion_tokens']) : null,
+            'total_tokens' => isset($usage['total_tokens']) ? max(0, (int) $usage['total_tokens']) : null,
+        ];
+    }
+
+    /**
      * @param array<string,mixed> $deterministicBundle
      * @return array<string,string>
      */
@@ -312,4 +375,3 @@ final class CopilotNarrativeService
         return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
     }
 }
-

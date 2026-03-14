@@ -270,7 +270,7 @@ final class CopilotDeterministicService
             throw new RuntimeException('No completed scans found for engineering copilot');
         }
 
-        $scan = $this->scans->findById($organizationId, $scanId);
+        $scan = $this->scans->findDetailedById($organizationId, $scanId);
         $controls = is_array($scan['controls'] ?? null) ? $scan['controls'] : [];
 
         $options = [];
@@ -342,7 +342,7 @@ final class CopilotDeterministicService
             throw new RuntimeException('scan_id is required for auditor copilot');
         }
 
-        $scan = $this->scans->findById($organizationId, $scanId);
+        $scan = $this->scans->findDetailedById($organizationId, $scanId);
         $baselineScanId = isset($payload['baseline_scan_id']) ? (int) $payload['baseline_scan_id'] : (int) ($scan['parent_scan_id'] ?? 0);
 
         $comparison = null;
@@ -438,4 +438,3 @@ final class CopilotDeterministicService
         return $normalized;
     }
 }
-

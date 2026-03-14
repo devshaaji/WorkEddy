@@ -46,6 +46,7 @@ final class OrgService
         // Add member count
         $members = $this->userRepo->listByOrganization($orgId);
         $org['member_count'] = count($members);
+        $org['recommendation_policy_defaults'] = RecommendationPolicyDefaults::defaults();
 
         return $org;
     }
@@ -74,7 +75,11 @@ final class OrgService
         $changed = false;
         foreach (self::SETTINGS_KEYS as $key) {
             if (array_key_exists($key, $data)) {
-                $current[$key] = $this->normalizeSetting($key, $data[$key]);
+                $normalized = $this->normalizeSetting($key, $data[$key]);
+                if ($key === 'video_retention_days') {
+                    $this->usageMeter->assertRetentionDaysAllowed($orgId, (int) $normalized);
+                }
+                $current[$key] = $normalized;
                 $changed = true;
             }
         }
@@ -104,6 +109,7 @@ final class OrgService
             throw new RuntimeException('Invalid role. Allowed: ' . implode(', ', $allowed));
         }
 
+        $this->usageMeter->assertOrgMemberLimitAvailable($orgId);
         $hash = password_hash($password, PASSWORD_BCRYPT);
         $id   = $this->userRepo->create($orgId, $name, $email, $hash, $role);
 
@@ -147,6 +153,8 @@ final class OrgService
         $snapshot = $this->usageMeter->currentUsage($orgId);
         $plan = $snapshot['plan'];
         $usage = $snapshot['usage'];
+        $metrics = is_array($usage['metrics'] ?? null) ? $usage['metrics'] : [];
+        $memberMetric = is_array($metrics['org_members'] ?? null) ? $metrics['org_members'] : [];
 
         return [
             'plan'  => $plan,
@@ -160,6 +168,10 @@ final class OrgService
                 'billing_cycle' => $usage['billing_cycle'],
                 'period_start' => $usage['period_start'],
                 'period_end' => $usage['period_end'],
+                'metrics' => $metrics,
+                'violations' => $usage['violations'] ?? [],
+                'members_used' => (int) ($memberMetric['used'] ?? 0),
+                'member_limit' => $memberMetric['limit'] ?? ($plan['member_limit'] ?? null),
             ],
         ];
     }
@@ -189,8 +201,10 @@ final class OrgService
      */
     private function normalizeRecommendationPolicy(mixed $value): array
     {
+        $defaults = RecommendationPolicyDefaults::defaults();
+
         if (!is_array($value)) {
-            return [];
+            return $defaults;
         }
 
         $thresholds = is_array($value['thresholds'] ?? null) ? $value['thresholds'] : [];
@@ -200,45 +214,42 @@ final class OrgService
         $interim = is_array($value['interim'] ?? null) ? $value['interim'] : [];
         $catalog = is_array($value['catalog'] ?? null) ? $value['catalog'] : [];
 
+        $defaultThresholds = $defaults['thresholds'];
+        $defaultRiskMultipliers = $defaults['risk_multipliers'];
+        $defaultRanking = $defaults['ranking'];
+        $defaultFeasibility = $defaults['feasibility'];
+        $defaultInterim = $defaults['interim'];
+
         return [
             'thresholds' => [
-                'trunk_flexion_high' => isset($thresholds['trunk_flexion_high']) ? (float) $thresholds['trunk_flexion_high'] : 45.0,
-                'trunk_flexion_moderate' => isset($thresholds['trunk_flexion_moderate']) ? (float) $thresholds['trunk_flexion_moderate'] : 25.0,
-                'upper_arm_elevation_high' => isset($thresholds['upper_arm_elevation_high']) ? (float) $thresholds['upper_arm_elevation_high'] : 60.0,
-                'repetition_high' => isset($thresholds['repetition_high']) ? (int) $thresholds['repetition_high'] : 20,
-                'lifting_load' => isset($thresholds['lifting_load']) ? (float) $thresholds['lifting_load'] : 12.0,
+                'trunk_flexion_high' => isset($thresholds['trunk_flexion_high']) ? (float) $thresholds['trunk_flexion_high'] : (float) $defaultThresholds['trunk_flexion_high'],
+                'trunk_flexion_moderate' => isset($thresholds['trunk_flexion_moderate']) ? (float) $thresholds['trunk_flexion_moderate'] : (float) $defaultThresholds['trunk_flexion_moderate'],
+                'upper_arm_elevation_high' => isset($thresholds['upper_arm_elevation_high']) ? (float) $thresholds['upper_arm_elevation_high'] : (float) $defaultThresholds['upper_arm_elevation_high'],
+                'repetition_high' => isset($thresholds['repetition_high']) ? (int) $thresholds['repetition_high'] : (int) $defaultThresholds['repetition_high'],
+                'lifting_load' => isset($thresholds['lifting_load']) ? (float) $thresholds['lifting_load'] : (float) $defaultThresholds['lifting_load'],
             ],
             'risk_multipliers' => [
-                'high' => isset($riskMultipliers['high']) ? (float) $riskMultipliers['high'] : 1.15,
-                'moderate' => isset($riskMultipliers['moderate']) ? (float) $riskMultipliers['moderate'] : 1.0,
-                'low' => isset($riskMultipliers['low']) ? (float) $riskMultipliers['low'] : 0.9,
+                'high' => isset($riskMultipliers['high']) ? (float) $riskMultipliers['high'] : (float) $defaultRiskMultipliers['high'],
+                'moderate' => isset($riskMultipliers['moderate']) ? (float) $riskMultipliers['moderate'] : (float) $defaultRiskMultipliers['moderate'],
+                'low' => isset($riskMultipliers['low']) ? (float) $riskMultipliers['low'] : (float) $defaultRiskMultipliers['low'],
             ],
             'ranking' => [
-                'cost_penalty_factor' => isset($ranking['cost_penalty_factor']) ? (float) $ranking['cost_penalty_factor'] : 1.1,
-                'impact_penalty_factor' => isset($ranking['impact_penalty_factor']) ? (float) $ranking['impact_penalty_factor'] : 0.8,
-                'reduction_factor' => isset($ranking['reduction_factor']) ? (float) $ranking['reduction_factor'] : 1.0,
-                'strict_hierarchy' => array_key_exists('strict_hierarchy', $ranking) ? $this->toBool($ranking['strict_hierarchy']) : true,
-                'cost_weight' => is_array($ranking['cost_weight'] ?? null) ? $ranking['cost_weight'] : ['low' => 1, 'medium' => 3, 'high' => 6],
-                'impact_weight' => is_array($ranking['impact_weight'] ?? null) ? $ranking['impact_weight'] : ['low' => 1, 'medium' => 3, 'high' => 5],
-                'hierarchy_bonus' => is_array($ranking['hierarchy_bonus'] ?? null) ? $ranking['hierarchy_bonus'] : ['elimination' => 7, 'substitution' => 5, 'engineering' => 4, 'administrative' => 2, 'ppe' => 0],
+                'cost_penalty_factor' => isset($ranking['cost_penalty_factor']) ? (float) $ranking['cost_penalty_factor'] : (float) $defaultRanking['cost_penalty_factor'],
+                'impact_penalty_factor' => isset($ranking['impact_penalty_factor']) ? (float) $ranking['impact_penalty_factor'] : (float) $defaultRanking['impact_penalty_factor'],
+                'reduction_factor' => isset($ranking['reduction_factor']) ? (float) $ranking['reduction_factor'] : (float) $defaultRanking['reduction_factor'],
+                'strict_hierarchy' => array_key_exists('strict_hierarchy', $ranking) ? $this->toBool($ranking['strict_hierarchy']) : (bool) $defaultRanking['strict_hierarchy'],
+                'cost_weight' => is_array($ranking['cost_weight'] ?? null) ? $ranking['cost_weight'] : $defaultRanking['cost_weight'],
+                'impact_weight' => is_array($ranking['impact_weight'] ?? null) ? $ranking['impact_weight'] : $defaultRanking['impact_weight'],
+                'hierarchy_bonus' => is_array($ranking['hierarchy_bonus'] ?? null) ? $ranking['hierarchy_bonus'] : $defaultRanking['hierarchy_bonus'],
             ],
             'feasibility' => [
-                'minimum_total_score' => isset($feasibility['minimum_total_score']) ? (float) $feasibility['minimum_total_score'] : 60.0,
-                'minimum_policy_compliance' => isset($feasibility['minimum_policy_compliance']) ? (float) $feasibility['minimum_policy_compliance'] : 55.0,
-                'weights' => is_array($feasibility['weights'] ?? null) ? $feasibility['weights'] : [
-                    'hazard_fit' => 0.20,
-                    'injury_likelihood_alignment' => 0.15,
-                    'policy_compliance' => 0.15,
-                    'worker_burden' => 0.10,
-                    'industry_recognition' => 0.10,
-                    'reliability_durability' => 0.10,
-                    'availability' => 0.10,
-                    'cost_effectiveness' => 0.10,
-                ],
+                'minimum_total_score' => isset($feasibility['minimum_total_score']) ? (float) $feasibility['minimum_total_score'] : (float) $defaultFeasibility['minimum_total_score'],
+                'minimum_policy_compliance' => isset($feasibility['minimum_policy_compliance']) ? (float) $feasibility['minimum_policy_compliance'] : (float) $defaultFeasibility['minimum_policy_compliance'],
+                'weights' => is_array($feasibility['weights'] ?? null) ? $feasibility['weights'] : $defaultFeasibility['weights'],
             ],
             'interim' => [
-                'max_days_without_interim' => isset($interim['max_days_without_interim']) ? max(1, (int) $interim['max_days_without_interim']) : 14,
-                'allow_ppe_interim' => array_key_exists('allow_ppe_interim', $interim) ? $this->toBool($interim['allow_ppe_interim']) : true,
+                'max_days_without_interim' => isset($interim['max_days_without_interim']) ? max(1, (int) $interim['max_days_without_interim']) : (int) $defaultInterim['max_days_without_interim'],
+                'allow_ppe_interim' => array_key_exists('allow_ppe_interim', $interim) ? $this->toBool($interim['allow_ppe_interim']) : (bool) $defaultInterim['allow_ppe_interim'],
             ],
             'catalog' => $catalog,
         ];

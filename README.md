@@ -63,7 +63,7 @@ docker compose run --rm --profile ops seed
 Notes:
 - The API container now retries startup tasks and runs migrations automatically before `php-fpm` starts.
 - If `vendor/` is empty in the mounted volume, the API container runs `composer install` automatically.
-- The `seed` service reuses the same app image as `api` (`workeddy-app:local`) to avoid building a duplicate PHP image.
+- The `seed` service reuses the same app image as `api` (`workeddy-app`) to avoid building a duplicate PHP image.
 - `video-retention` service runs `scripts/cleanup-videos.php` on a loop (`VIDEO_CLEANUP_INTERVAL_SECONDS`) to enforce retention continuously.
 
 ## Database Commands

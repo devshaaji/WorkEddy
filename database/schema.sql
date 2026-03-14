@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS plans (
     scan_limit    INT            NULL,
     price         DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
     billing_cycle VARCHAR(50)    NOT NULL DEFAULT 'monthly',
+    billing_limits_json JSON     NULL,
     status        ENUM('active','archived') NOT NULL DEFAULT 'active'
 );
 
@@ -196,6 +197,10 @@ CREATE TABLE IF NOT EXISTS copilot_audit_logs (
     llm_response_redacted JSON NULL,
     response_payload_redacted JSON NULL,
     llm_status ENUM('success','fallback','disabled') NOT NULL,
+    llm_request_count INT UNSIGNED NOT NULL DEFAULT 0,
+    llm_prompt_tokens INT UNSIGNED NULL,
+    llm_completion_tokens INT UNSIGNED NULL,
+    llm_total_tokens INT UNSIGNED NULL,
     created_at DATETIME NOT NULL,
     CONSTRAINT fk_copilot_audit_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
     CONSTRAINT fk_copilot_audit_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -313,6 +318,7 @@ CREATE TABLE IF NOT EXISTS live_sessions (
     analysed_frame_count INT UNSIGNED NOT NULL DEFAULT 0,
     avg_latency_ms DECIMAL(10,2) NULL,
     summary_metrics_json JSON NULL,
+    telemetry_json JSON NULL,
     error_message TEXT NULL,
     started_at DATETIME NOT NULL,
     completed_at DATETIME NULL,

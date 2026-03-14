@@ -1,4 +1,14 @@
+--index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://pypi.org/simple
+
+torch
+torchvision
+
+ultralytics==8.4.2
+
+onnx
+onnxruntime
+
 opencv-python-headless==4.11.0.86
-numpy==2.2.4
+numpy==1.26.4
 mediapipe==0.10.30
-ultralytics>=8.3.0

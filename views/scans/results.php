@@ -289,8 +289,10 @@ ob_start();
     <div class="card-body p-0">
       <video class="w-100 rounded-bottom" style="max-height:400px;background:#000" controls preload="metadata"
              :src="(scan && scan.video_path)
-                ? (String(scan.video_path).startsWith('/storage/uploads/videos/')
-                    ? String(scan.video_path).replace('/storage/uploads/videos/', '/storage/videos/')
+            ? (String(scan.video_path).startsWith('/storage/uploads/pose/')
+              ? String(scan.video_path).replace('/storage/uploads/pose/', '/storage/pose/')
+              : String(scan.video_path).startsWith('/storage/uploads/videos/')
+              ? String(scan.video_path).replace('/storage/uploads/videos/', '/storage/videos/')
                     : String(scan.video_path))
                 : ''">
         Your browser does not support video playback.

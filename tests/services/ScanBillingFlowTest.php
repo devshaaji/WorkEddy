@@ -13,6 +13,7 @@ use WorkEddy\Repositories\TaskRepository;
 use WorkEddy\Repositories\WorkspaceRepository;
 use WorkEddy\Services\BillingPeriodService;
 use WorkEddy\Services\Ergonomics\AssessmentEngine;
+use WorkEddy\Services\ImprovementProofService;
 use WorkEddy\Services\ScanService;
 use WorkEddy\Services\UsageMeterService;
 
@@ -101,6 +102,7 @@ final class ScanBillingFlowTest extends TestCase
             new AssessmentEngine(),
             new UsageMeterService(new WorkspaceRepository($conn), new BillingPeriodService()),
             $queue,
+            new ImprovementProofService(),
             null,
         );
 
@@ -266,6 +268,7 @@ final class ScanBillingFlowTest extends TestCase
                 public function dequeue(string $queue): ?array { return null; }
                 public function size(string $queue): int { return 0; }
             },
+            new ImprovementProofService(),
             null,
             300,
             new WorkspaceRepository($conn),

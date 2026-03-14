@@ -29,7 +29,7 @@ final class ControlActionService
         private readonly ControlActionRepository $actions,
         private readonly ScanRepository $scans,
         private readonly UserRepository $users,
-        private readonly ?ImprovementProofService $improvementProofs = null,
+        private readonly ImprovementProofService $improvementProofs,
         private readonly ?ScanComparisonService $comparisons = null,
     ) {}
 
@@ -43,7 +43,7 @@ final class ControlActionService
         int $controlRecommendationId,
         array $payload
     ): array {
-        $scan = $this->scans->findById($organizationId, $sourceScanId);
+        $scan = $this->scans->findDetailedById($organizationId, $sourceScanId);
         $control = $this->findControl($scan, $controlRecommendationId);
 
         $assignedTo = $this->normalizeAssignee($organizationId, $payload['assigned_to_user_id'] ?? null);
@@ -169,8 +169,8 @@ final class ControlActionService
             throw new RuntimeException('Action is already verified');
         }
 
-        $baselineScan = $this->scans->findById($organizationId, (int) ($action['source_scan_id'] ?? 0));
-        $verificationScan = $this->scans->findById($organizationId, $verificationScanId);
+        $baselineScan = $this->scans->findAnalysisById($organizationId, (int) ($action['source_scan_id'] ?? 0));
+        $verificationScan = $this->scans->findAnalysisById($organizationId, $verificationScanId);
 
         $nodes = [];
         if ($this->comparisons !== null) {
@@ -186,7 +186,7 @@ final class ControlActionService
             }
         }
 
-        $improvement = ($this->improvementProofs ?? new ImprovementProofService())->build(
+        $improvement = $this->improvementProofs->build(
             $baselineScan,
             $verificationScan,
             $nodes,

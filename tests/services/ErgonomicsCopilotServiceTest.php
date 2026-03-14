@@ -16,6 +16,7 @@ use WorkEddy\Services\CopilotNarrativeService;
 use WorkEddy\Services\CopilotRedactionService;
 use WorkEddy\Services\Ergonomics\AssessmentEngine;
 use WorkEddy\Services\ErgonomicsCopilotService;
+use WorkEddy\Services\ImprovementProofService;
 use WorkEddy\Services\ScanComparisonService;
 
 final class ErgonomicsCopilotServiceTest extends TestCase
@@ -210,7 +211,7 @@ final class ErgonomicsCopilotServiceTest extends TestCase
 
         $scanRepo = new ScanRepository($conn);
         $actionRepo = new ControlActionRepository($conn);
-        $comparison = new ScanComparisonService($scanRepo, new AssessmentEngine());
+        $comparison = new ScanComparisonService($scanRepo, new AssessmentEngine(), new ImprovementProofService());
         $deterministic = new CopilotDeterministicService($conn, $scanRepo, $actionRepo, $comparison);
         $narrative = new CopilotNarrativeService($transport);
         $audit = new CopilotAuditService(new CopilotAuditRepository($conn), new CopilotRedactionService());

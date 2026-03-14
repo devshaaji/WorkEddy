@@ -47,7 +47,7 @@ $content    = $content    ?? '';
         'dashboard' => ['/dashboard',        'bi-grid-1x2',  'Dashboard'],
         'tasks'     => ['/tasks',            'bi-list-task', 'Tasks'],
         'leading-indicators' => ['/leading-indicators/check-in', 'bi-heart-pulse', 'Wellbeing Check-in'],
-        'copilot'   => ['/copilot',          'bi-stars',     'Ergonomics Copilot'],
+        'copilot'   => ['/copilot',          'bi-stars',     'Copilot'],
         'scans'     => ['',                  'bi-upc-scan',  'Scans'],
       ];
       $scansActive = in_array($activePage, ['scans', 'scans-video', 'scans-live', 'scans-compare']);
@@ -343,7 +343,7 @@ $content    = $content    ?? '';
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<script src="/assets/js/app.js"></script>
+<?php require __DIR__ . '/partials/app-scripts.php'; ?>
 <script>
 /* Sidebar toggle (mobile) */
 (function () {

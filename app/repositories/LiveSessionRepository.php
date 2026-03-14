@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace WorkEddy\Repositories;
 
+use DateTimeInterface;
 use Doctrine\DBAL\Connection;
 use RuntimeException;
 
@@ -110,6 +111,66 @@ final class LiveSessionRepository
         return (int) ($row['cnt'] ?? 0);
     }
 
+    public function countStartedSessionsForPeriod(
+        int $organizationId,
+        DateTimeInterface $periodStart,
+        DateTimeInterface $periodEnd
+    ): int {
+        $row = $this->db->fetchAssociative(
+            'SELECT COUNT(*) AS cnt
+             FROM live_sessions
+             WHERE organization_id = :org_id
+               AND started_at >= :period_start
+               AND started_at < :period_end',
+            [
+                'org_id' => $organizationId,
+                'period_start' => $periodStart->format('Y-m-d H:i:s'),
+                'period_end' => $periodEnd->format('Y-m-d H:i:s'),
+            ]
+        );
+
+        return (int) ($row['cnt'] ?? 0);
+    }
+
+    public function sumSessionMinutesForPeriod(
+        int $organizationId,
+        DateTimeInterface $periodStart,
+        DateTimeInterface $periodEnd,
+        ?DateTimeInterface $now = null
+    ): int {
+        $now ??= new \DateTimeImmutable('now');
+
+        $row = $this->db->fetchAssociative(
+            'SELECT COALESCE(SUM(
+                GREATEST(
+                    0,
+                    TIMESTAMPDIFF(
+                        SECOND,
+                        GREATEST(started_at, :period_start),
+                        LEAST(COALESCE(completed_at, :now), :period_end)
+                    )
+                )
+             ), 0) AS seconds_used
+             FROM live_sessions
+             WHERE organization_id = :org_id
+               AND started_at < :period_end
+               AND COALESCE(completed_at, :now) > :period_start',
+            [
+                'org_id' => $organizationId,
+                'period_start' => $periodStart->format('Y-m-d H:i:s'),
+                'period_end' => $periodEnd->format('Y-m-d H:i:s'),
+                'now' => $now->format('Y-m-d H:i:s'),
+            ]
+        );
+
+        $seconds = (int) ($row['seconds_used'] ?? 0);
+        if ($seconds <= 0) {
+            return 0;
+        }
+
+        return (int) ceil($seconds / 60);
+    }
+
     /**
      * Update session status.
      */
@@ -172,6 +233,38 @@ final class LiveSessionRepository
         );
     }
 
+    public function incrementCapturedFrameCount(int $sessionId, int $newFrames): void
+    {
+        $this->db->executeStatement(
+            'UPDATE live_sessions
+             SET frame_count = frame_count + :new_frames,
+                 updated_at = :now
+             WHERE id = :id',
+            [
+                'new_frames' => $newFrames,
+                'now' => gmdate('Y-m-d H:i:s'),
+                'id' => $sessionId,
+            ]
+        );
+    }
+
+    /**
+     * Store telemetry JSON for a live session.
+     *
+     * @param array<string,mixed> $telemetry
+     */
+    public function storeTelemetry(int $sessionId, array $telemetry): void
+    {
+        $this->db->update(
+            'live_sessions',
+            [
+                'telemetry_json' => json_encode($telemetry, JSON_UNESCAPED_UNICODE),
+                'updated_at' => gmdate('Y-m-d H:i:s'),
+            ],
+            ['id' => $sessionId]
+        );
+    }
+
     /**
      * Store summary metrics JSON when a session is completed.
      */
@@ -212,7 +305,8 @@ final class LiveSessionRepository
              WHERE session_id = :session_id
              ORDER BY frame_number DESC
              LIMIT :lim',
-            ['session_id' => $sessionId, 'lim' => $limit]
+            ['session_id' => $sessionId, 'lim' => $limit],
+            ['session_id' => \Doctrine\DBAL\ParameterType::INTEGER, 'lim' => \Doctrine\DBAL\ParameterType::INTEGER]
         );
     }
 }

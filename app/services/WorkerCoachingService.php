@@ -110,10 +110,6 @@ final class WorkerCoachingService
 
         $latestIndicator = $this->indicators->latestByUser($organizationId, $userId);
         $latestScan = $this->scans->latestByUser($organizationId, $userId, 'completed');
-        $latestScanDetailed = null;
-        if (is_array($latestScan) && isset($latestScan['id'])) {
-            $latestScanDetailed = $this->scans->findById($organizationId, (int) $latestScan['id']);
-        }
 
         $assignedActions = $this->actions->listByOrganization($organizationId, null, null, $userId, 25);
         $openAssignedActions = array_values(array_filter(
@@ -121,7 +117,7 @@ final class WorkerCoachingService
             static fn (array $a): bool => in_array((string) ($a['status'] ?? ''), ['planned', 'in_progress', 'implemented'], true)
         ));
 
-        $tipCodes = $this->deriveTipCodes($latestIndicator, $latestScanDetailed, $openAssignedActions);
+        $tipCodes = $this->deriveTipCodes($latestIndicator, $latestScan, $openAssignedActions);
         $tips = [];
         foreach ($tipCodes as $code) {
             $tips[] = $this->buildTip($dictionary, $code);
@@ -135,8 +131,8 @@ final class WorkerCoachingService
             'evidence' => [
                 'latest_indicator_id' => isset($latestIndicator['id']) ? (int) $latestIndicator['id'] : null,
                 'latest_indicator_checkin_type' => $latestIndicator['checkin_type'] ?? null,
-                'latest_scan_id' => isset($latestScanDetailed['id']) ? (int) $latestScanDetailed['id'] : null,
-                'latest_scan_risk_category' => $latestScanDetailed['risk_category'] ?? null,
+                'latest_scan_id' => isset($latestScan['id']) ? (int) $latestScan['id'] : null,
+                'latest_scan_risk_category' => $latestScan['risk_category'] ?? null,
                 'open_assigned_actions' => count($openAssignedActions),
             ],
         ];
@@ -211,4 +207,3 @@ final class WorkerCoachingService
         return $lang;
     }
 }
-

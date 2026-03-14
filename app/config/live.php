@@ -1,5 +1,7 @@
 <?php
 
+use WorkEddy\Helpers\WorkerContract;
+
 $envBool = static fn (string $name, bool $default): bool => filter_var(
     getenv($name),
     FILTER_VALIDATE_BOOL,
@@ -122,5 +124,21 @@ return [
 
     // ── Queue ──────────────────────────────────────────────────────────
     // Separate queue for live-session jobs so video-worker is not affected.
-    'queue_name' => getenv('LIVE_QUEUE_NAME') ?: 'live_session_jobs',
+    'queue_name' => getenv('LIVE_QUEUE_NAME') ?: WorkerContract::liveQueueName(),
+
+    // Separate queue for browser-uploaded live frame batches waiting on the worker.
+    'frame_queue_name' => getenv('LIVE_FRAME_QUEUE_NAME') ?: WorkerContract::liveFrameQueueName(),
+
+    // Maximum queued browser frame batches waiting for the worker before the
+    // API starts dropping new uploads to protect the system from runaway lag.
+    'max_pending_frame_batches' => (int) (getenv('LIVE_MAX_PENDING_FRAME_BATCHES') ?: 12),
+
+    // If every frame in a batch is already older than the live latency budget
+    // multiplied by this factor, the worker drops the whole batch immediately.
+    'stale_batch_drop_multiplier' => (float) (getenv('LIVE_STALE_BATCH_DROP_MULTIPLIER') ?: 1.0),
+
+    // Cache the most recent scored frames outside MySQL so the live dashboard
+    // can read the hot path without hitting the database on every poll.
+    'recent_frames_cache_ttl_seconds' => (int) (getenv('LIVE_RECENT_FRAMES_CACHE_TTL_SECONDS') ?: 900),
+    'recent_frames_cache_size' => (int) (getenv('LIVE_RECENT_FRAMES_CACHE_SIZE') ?: 60),
 ];

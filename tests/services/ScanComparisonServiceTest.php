@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use WorkEddy\Repositories\ScanRepository;
 use WorkEddy\Services\Ergonomics\AssessmentEngine;
+use WorkEddy\Services\ImprovementProofService;
 use WorkEddy\Services\ScanComparisonService;
 
 final class ScanComparisonServiceTest extends TestCase
@@ -204,7 +205,7 @@ final class ScanComparisonServiceTest extends TestCase
             });
 
         $repo = new ScanRepository($conn);
-        return new ScanComparisonService($repo, new AssessmentEngine());
+        return new ScanComparisonService($repo, new AssessmentEngine(), new ImprovementProofService());
     }
 
     private function scanRow(

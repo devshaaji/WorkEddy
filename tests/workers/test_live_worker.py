@@ -145,7 +145,6 @@ def test_report_frames_posts_to_live_worker_api(monkeypatch: pytest.MonkeyPatch)
     live_worker.report_frames(
         session_id=10,
         organization_id=3,
-        model="reba",
         frames=[
             {"frame_number": 1, "metrics": {"trunk_angle": 15.0}, "latency_ms": 30.0},
             {"frame_number": 2, "metrics": {"trunk_angle": 20.0}, "latency_ms": 35.0},
@@ -155,6 +154,60 @@ def test_report_frames_posts_to_live_worker_api(monkeypatch: pytest.MonkeyPatch)
     assert captured["endpoint"] == "/api/v1/internal/live-worker/frames"
     assert captured["payload"]["session_id"] == 10
     assert len(captured["payload"]["frames"]) == 2
+
+
+def test_report_frames_includes_telemetry_when_provided(monkeypatch: pytest.MonkeyPatch):
+    live_worker = _load_worker()
+    captured: dict[str, Any] = {}
+
+    def fake_post(endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
+        captured["endpoint"] = endpoint
+        captured["payload"] = payload
+        return {"ok": True}
+
+    monkeypatch.setattr(live_worker, "_api_post", fake_post)
+
+    live_worker.report_frames(
+        session_id=10,
+        organization_id=3,
+        frames=[],
+        telemetry={"worker_skipped_frames": 2, "worker_lag_ms_avg": 180.5},
+    )
+
+    assert captured["payload"]["telemetry"]["worker_skipped_frames"] == 2
+    assert captured["payload"]["telemetry"]["worker_lag_ms_avg"] == 180.5
+
+
+def test_fetch_next_frame_batch_reads_new_internal_endpoint(monkeypatch: pytest.MonkeyPatch):
+    live_worker = _load_worker()
+
+    monkeypatch.setattr(
+        live_worker,
+        "_api_request",
+        lambda endpoint, **kwargs: {
+            "data": {
+                "session_id": 10,
+                "organization_id": 3,
+                "pose_engine": "yolo26",
+                "multi_person_mode": False,
+                "model_variant": "yolo26n-pose",
+                "model": "reba",
+                "target_fps": 5.0,
+                "batch_window_ms": 500,
+                "max_e2e_latency_ms": 2000,
+                "smoothing_alpha": 0.35,
+                "min_joint_confidence": 0.45,
+                "tracking_max_distance": 0.15,
+                "frames": [{"frame_number": 1, "image_jpeg_base64": "YWJj"}],
+            }
+        },
+    )
+
+    batch = live_worker.fetch_next_frame_batch()
+
+    assert batch is not None
+    assert batch["session_id"] == 10
+    assert batch["frames"][0]["frame_number"] == 1
 
 
 def test_fail_session_posts_error(monkeypatch: pytest.MonkeyPatch):
@@ -233,7 +286,6 @@ def test_process_frame_batch_respects_latency_budget(monkeypatch: pytest.MonkeyP
         frames_bgr=frames,
         session_id=1,
         organization_id=1,
-        model="reba",
         model_variant="slow-v1",
         multi_person_mode=True,
         max_e2e_latency_ms=100,  # Only ~2 frames will fit in 100ms
@@ -301,7 +353,7 @@ def test_process_frame_batch_applies_confidence_filter_and_smoothing(monkeypatch
 
     captured_frames: list[dict[str, Any]] = []
 
-    def fake_report_frames(session_id, organization_id, model, frames):
+    def fake_report_frames(session_id, organization_id, frames, telemetry=None):
         captured_frames.extend(frames)
         return {"ok": True}
 
@@ -315,7 +367,6 @@ def test_process_frame_batch_applies_confidence_filter_and_smoothing(monkeypatch
         frames_bgr=frames,
         session_id=99,
         organization_id=1,
-        model="reba",
         smoothing_alpha=0.5,
         min_joint_confidence=0.45,
         tracking_max_distance=0.2,
@@ -332,3 +383,127 @@ def test_process_frame_batch_applies_confidence_filter_and_smoothing(monkeypatch
     # same subject track id retained for nearby center points
     assert captured_frames[0]["metrics"]["subject_track_id"] == 1
     assert captured_frames[1]["metrics"]["subject_track_id"] == 1
+
+
+def test_process_uploaded_frame_batch_decodes_and_forwards_frame_numbers(monkeypatch: pytest.MonkeyPatch):
+    live_worker = _load_worker()
+    now_ms = 1_700_000_010_000
+
+    monkeypatch.setattr(live_worker.time, "time", lambda: now_ms / 1000.0)
+    monkeypatch.setattr(live_worker, "_decode_jpeg_base64", lambda payload: np.zeros((8, 8, 3), dtype=np.uint8))
+    captured: dict[str, Any] = {}
+
+    def fake_process_frame_batch(**kwargs):
+        captured.update(kwargs)
+        return {"processed": 2, "skipped": 0, "avg_latency_ms": 12.5}
+
+    monkeypatch.setattr(live_worker, "process_frame_batch", fake_process_frame_batch)
+
+    result = live_worker.process_uploaded_frame_batch({
+        "session_id": 7,
+        "organization_id": 2,
+        "pose_engine": "yolo26",
+        "multi_person_mode": False,
+        "model_variant": "yolo26n-pose",
+        "model": "reba",
+        "target_fps": 5.0,
+        "batch_window_ms": 500,
+        "max_e2e_latency_ms": 2000,
+        "smoothing_alpha": 0.35,
+        "min_joint_confidence": 0.45,
+        "tracking_max_distance": 0.15,
+        "frames": [
+            {"frame_number": 11, "image_jpeg_base64": "YWJj", "captured_at_ms": now_ms - 100},
+            {"frame_number": 12, "image_jpeg_base64": "ZGVm", "captured_at_ms": now_ms - 50},
+        ],
+    })
+
+    assert result["processed"] == 2
+    assert captured["frame_numbers"] == [11, 12]
+    assert captured["telemetry"]["worker_lag_samples"] == 2
+
+
+def test_process_uploaded_frame_batch_reports_telemetry_when_all_frames_fail_decode(monkeypatch: pytest.MonkeyPatch):
+    live_worker = _load_worker()
+    monkeypatch.setattr(live_worker, "_decode_jpeg_base64", lambda payload: None)
+
+    reported: dict[str, Any] = {}
+
+    def fake_report_frames(session_id, organization_id, frames, telemetry=None):
+        reported["session_id"] = session_id
+        reported["organization_id"] = organization_id
+        reported["frames"] = frames
+        reported["telemetry"] = telemetry
+        return {"ok": True}
+
+    monkeypatch.setattr(live_worker, "report_frames", fake_report_frames)
+
+    result = live_worker.process_uploaded_frame_batch({
+        "session_id": 7,
+        "organization_id": 2,
+        "pose_engine": "yolo26",
+        "multi_person_mode": False,
+        "model_variant": "yolo26n-pose",
+        "model": "reba",
+        "target_fps": 5.0,
+        "batch_window_ms": 500,
+        "max_e2e_latency_ms": 2000,
+        "smoothing_alpha": 0.35,
+        "min_joint_confidence": 0.45,
+        "tracking_max_distance": 0.15,
+        "frames": [
+            {"frame_number": 11, "image_jpeg_base64": "YWJj"},
+        ],
+    })
+
+    assert result["processed"] == 0
+    assert reported["frames"] == []
+    assert reported["telemetry"]["worker_decode_failures"] == 1
+
+
+def test_process_uploaded_frame_batch_drops_stale_batches_before_inference(monkeypatch: pytest.MonkeyPatch):
+    live_worker = _load_worker()
+    now_ms = 1_700_000_010_000
+
+    monkeypatch.setattr(live_worker.time, "time", lambda: now_ms / 1000.0)
+
+    reported: dict[str, Any] = {}
+
+    def fake_report_frames(session_id, organization_id, frames, telemetry=None):
+        reported["session_id"] = session_id
+        reported["organization_id"] = organization_id
+        reported["frames"] = frames
+        reported["telemetry"] = telemetry
+        return {"ok": True}
+
+    def fail_process_frame_batch(**kwargs):
+        raise AssertionError("stale batches should not reach inference")
+
+    monkeypatch.setattr(live_worker, "report_frames", fake_report_frames)
+    monkeypatch.setattr(live_worker, "process_frame_batch", fail_process_frame_batch)
+
+    result = live_worker.process_uploaded_frame_batch({
+        "session_id": 7,
+        "organization_id": 2,
+        "pose_engine": "yolo26",
+        "multi_person_mode": False,
+        "model_variant": "yolo26n-pose",
+        "model": "reba",
+        "target_fps": 5.0,
+        "batch_window_ms": 500,
+        "max_e2e_latency_ms": 2000,
+        "stale_batch_drop_multiplier": 1.0,
+        "smoothing_alpha": 0.35,
+        "min_joint_confidence": 0.45,
+        "tracking_max_distance": 0.15,
+        "frames": [
+            {"frame_number": 11, "image_jpeg_base64": "YWJj", "captured_at_ms": now_ms - 4000},
+            {"frame_number": 12, "image_jpeg_base64": "ZGVm", "captured_at_ms": now_ms - 3500},
+        ],
+    })
+
+    assert result["processed"] == 0
+    assert result["dropped_reason"] == "stale_batch"
+    assert reported["frames"] == []
+    assert reported["telemetry"]["stale_frame_batches_dropped"] == 1
+    assert reported["telemetry"]["stale_frames_dropped"] == 2

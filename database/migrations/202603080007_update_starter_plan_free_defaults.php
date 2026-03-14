@@ -22,8 +22,8 @@ return new class implements MigrationInterface {
 
         if ($starterId === false || $starterId === null) {
             $db->executeStatement(
-                "INSERT INTO plans (name, scan_limit, price, billing_cycle, status, created_at)
-                 VALUES ('starter', 10, 0.00, 'monthly', 'active', NOW())"
+                "INSERT INTO plans (name, scan_limit, price, billing_cycle, status)
+                 VALUES ('starter', 10, 0.00, 'monthly', 'active')"
             );
             return;
         }

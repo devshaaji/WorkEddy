@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import sys
 import urllib.error
 import urllib.request
 from functools import lru_cache
@@ -16,12 +17,19 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
+SHARED_ROOT = ROOT.parent / "shared"
+
+if str(SHARED_ROOT) not in sys.path:
+    sys.path.append(str(SHARED_ROOT))
+
+from worker_contract import load_contract, route, validate_payload  # noqa: E402
 
 API_BASE_URL = os.getenv("WORKER_API_BASE_URL", "http://nginx").rstrip("/")
 API_TIMEOUT_SECONDS = float(os.getenv("WORKER_API_TIMEOUT_SECONDS", "20"))
-NEXT_JOB_ENDPOINT = "/api/v1/internal/worker/jobs/next"
-COMPLETE_ENDPOINT = "/api/v1/internal/worker/scans/complete"
-FAIL_ENDPOINT = "/api/v1/internal/worker/scans/fail"
+VIDEO_CONTRACT = load_contract("video-worker")
+NEXT_JOB_ENDPOINT = f"/api/v1{route(VIDEO_CONTRACT, 'next_job')}"
+COMPLETE_ENDPOINT = f"/api/v1{route(VIDEO_CONTRACT, 'complete')}"
+FAIL_ENDPOINT = f"/api/v1{route(VIDEO_CONTRACT, 'fail')}"
 
 
 def _load(name: str, filename: str):
@@ -40,7 +48,7 @@ def _frame_extractor_module():
 
 @lru_cache(maxsize=1)
 def _pose_detector_module():
-    return _load("pose_detector", "pose_detector.py")
+    return _load("pose_estimation", "pose_estimation.py")
 
 
 def _api_request(
@@ -112,6 +120,8 @@ def fetch_next_job() -> dict[str, Any] | None:
     if not isinstance(job, dict):
         raise RuntimeError("Worker job response must contain an object under 'data'")
 
+    validate_payload(VIDEO_CONTRACT, "job", job)
+
     return job
 
 
@@ -145,8 +155,8 @@ def process_scan_job(job: dict[str, Any]) -> None:
     frame_extractor.sample_frame_stats(video_path=video_path, sample_every_n=4)
     pose_metrics = pose_detector.estimate_pose_metrics(
         video_path=video_path,
-        target_fps=10.0,
         generate_visualization=True,
+        blur_faces=True,
         multi_person_policy=multi_person_policy,
     )
 
@@ -159,8 +169,10 @@ def process_scan_job(job: dict[str, Any]) -> None:
         "metrics": metrics_for_scoring,
     }
     pose_video_path = str(pose_metrics.get("pose_video_path", "")).strip()
-    if pose_video_path.startswith("/storage/uploads/videos/"):
+    if pose_video_path.startswith("/storage/uploads/pose/") or pose_video_path.startswith("/storage/uploads/videos/"):
         payload["pose_video_path"] = pose_video_path
+
+    validate_payload(VIDEO_CONTRACT, "complete", payload)
 
     _api_post(
         COMPLETE_ENDPOINT,
@@ -169,11 +181,10 @@ def process_scan_job(job: dict[str, Any]) -> None:
 
 
 def mark_scan_invalid(scan_id: int, organization_id: int, error_message: str = "") -> None:
-    _api_post(
-        FAIL_ENDPOINT,
-        {
-            "scan_id": int(scan_id),
-            "organization_id": int(organization_id),
-            "error_message": (error_message or "Processing failed").strip(),
-        },
-    )
+    payload = {
+        "scan_id": int(scan_id),
+        "organization_id": int(organization_id),
+        "error_message": (error_message or "Processing failed").strip(),
+    }
+    validate_payload(VIDEO_CONTRACT, "fail", payload)
+    _api_post(FAIL_ENDPOINT, payload)

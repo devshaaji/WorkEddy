@@ -41,10 +41,10 @@ return static function (Connection $db): void {
 
     if (!$existingUser) {
         $db->executeStatement(
-            "INSERT INTO users (organization_id, name, email, password_hash, role, created_at) VALUES (:org_id, :name, :email, :hash, 'admin', NOW())",
+            "INSERT INTO users (organization_id, name, email, password_hash, role, created_at) VALUES (:org_id, :name, :email, :hash, 'super_admin', NOW())",
             [
                 'org_id' => $orgId,
-                'name' => 'Demo Admin',
+                'name' => 'Super Admin',
                 'email' => $adminEmail,
                 'hash' => password_hash('Password1!', PASSWORD_BCRYPT),
             ]

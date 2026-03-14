@@ -25,4 +25,9 @@ RUN composer install --no-dev --no-scripts --prefer-dist --optimize-autoloader
 # Copy application source (.dockerignore excludes vendor/ so image vendor is preserved)
 COPY . .
 
+# Startup script handles retries + dependency install + migrations
+COPY infrastructure/docker/api-entrypoint.sh /usr/local/bin/api-entrypoint.sh
+RUN chmod +x /usr/local/bin/api-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/api-entrypoint.sh"]
 CMD ["php-fpm", "-F"]

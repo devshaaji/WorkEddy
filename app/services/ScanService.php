@@ -7,6 +7,7 @@ namespace WorkEddy\Services;
 use RuntimeException;
 use WorkEddy\Contracts\CacheInterface;
 use WorkEddy\Contracts\QueueInterface;
+use WorkEddy\Helpers\WorkerContract;
 use WorkEddy\Repositories\ControlRecommendationRepository;
 use WorkEddy\Repositories\ScanRepository;
 use WorkEddy\Repositories\TaskRepository;
@@ -16,7 +17,6 @@ use WorkEddy\Services\Ergonomics\AssessmentEngine;
 final class ScanService
 {
     private const VALID_MODELS = ['rula', 'reba', 'niosh'];
-    private const SCAN_QUEUE   = 'scan_jobs';
     private const SCAN_LIST_CACHE_TTL = 300;
     private const VALID_SCAN_STATUSES = ['pending', 'processing', 'completed', 'invalid'];
     private const MAX_SCAN_LIST_LIMIT = 500;
@@ -27,12 +27,12 @@ final class ScanService
         private readonly AssessmentEngine  $assessmentEngine,
         private readonly UsageMeterService $usageMeter,
         private readonly QueueInterface    $queue,
+        private readonly ImprovementProofService $improvementProofs,
         private readonly ?CacheInterface   $cache = null,
         private readonly int               $scanListCacheTtl = self::SCAN_LIST_CACHE_TTL,
         private readonly ?WorkspaceRepository $workspaces = null,
         private readonly ?ControlRecommendationRepository $controlRecommendations = null,
         private readonly ?ControlRecommendationService $controlRecommendationEngine = null,
-        private readonly ?ImprovementProofService $improvementProofs = null,
         private readonly ?VideoProcessingService $videos = null,
     ) {}
 
@@ -42,14 +42,14 @@ final class ScanService
         $this->assessmentEngine->validateCombination($model, 'manual');
 
         $this->tasks->findById($organizationId, $taskId);
-        $this->usageMeter->assertAvailable($organizationId);
+        $this->usageMeter->assertVideoScanAvailable($organizationId);
 
         $score  = $this->assessmentEngine->assess($model, $metrics);
         $scanId = $this->scans->createManual($organizationId, $userId, $taskId, $model, $score, $metrics);
         $this->persistRecommendations($organizationId, $scanId, $model, $metrics, $score);
         $this->invalidateScanLists($organizationId);
 
-        return $this->scans->findById($organizationId, $scanId);
+        return $this->scans->findDetailedById($organizationId, $scanId);
     }
 
     public function createVideoScan(int $organizationId, int $userId, int $taskId, ?string $model, string $videoPath, ?int $parentScanId = null): array
@@ -72,12 +72,12 @@ final class ScanService
         $this->scans->reserveUsage($organizationId, $scanId, 'video_scan');
 
         try {
-            $this->queue->enqueue(self::SCAN_QUEUE, [
-                'scan_id'         => $scanId,
+            $this->queue->enqueue(WorkerContract::videoQueueName(), WorkerContract::videoJobPayload([
+                'scan_id' => $scanId,
                 'organization_id' => $organizationId,
-                'video_path'      => $videoPath,
-                'model'           => $model,
-            ]);
+                'video_path' => $videoPath,
+                'model' => $model,
+            ]));
         } catch (\Throwable $e) {
             $this->scans->markVideoInvalid($organizationId, $scanId, 'Queue enqueue failed');
             $this->invalidateScanLists($organizationId);
@@ -124,8 +124,11 @@ final class ScanService
         $resolvedPoseVideoPath = null;
         if ($poseVideoPath !== null && trim($poseVideoPath) !== '') {
             $resolvedPoseVideoPath = trim($poseVideoPath);
-            if (!str_starts_with($resolvedPoseVideoPath, '/storage/uploads/videos/')) {
-                throw new RuntimeException('pose_video_path must be under /storage/uploads/videos/');
+            if (
+                !str_starts_with($resolvedPoseVideoPath, '/storage/uploads/pose/')
+                && !str_starts_with($resolvedPoseVideoPath, '/storage/uploads/videos/')
+            ) {
+                throw new RuntimeException('pose_video_path must be under /storage/uploads/pose/ or /storage/uploads/videos/');
             }
         }
 
@@ -134,7 +137,7 @@ final class ScanService
         $this->applyPrivacyPolicyAfterProcessing($organizationId, $scanId, $scan);
         $this->invalidateScanLists($organizationId);
 
-        return $this->scans->findById($organizationId, $scanId);
+        return $this->scans->findDetailedById($organizationId, $scanId);
     }
 
     public function failVideoScanFromWorker(int $organizationId, int $scanId, string $errorMessage): void
@@ -156,7 +159,7 @@ final class ScanService
 
     public function getById(int $organizationId, int $scanId): array
     {
-        return $this->scans->findById($organizationId, $scanId);
+        return $this->scans->findDetailedById($organizationId, $scanId);
     }
 
     public function listByOrganization(int $organizationId, ?string $status = null, ?int $limit = null): array
@@ -216,19 +219,19 @@ final class ScanService
      */
     public function compare(int $organizationId, int $scanId): array
     {
-        $current = $this->scans->findById($organizationId, $scanId);
+        $current = $this->scans->findDetailedById($organizationId, $scanId);
 
         $parentId = $current['parent_scan_id'] ?? null;
         if (!$parentId) {
             throw new RuntimeException('This scan has no parent scan to compare against');
         }
 
-        $parent = $this->scans->findById($organizationId, (int) $parentId);
+        $parent = $this->scans->findDetailedById($organizationId, (int) $parentId);
 
         return [
             'current' => $current,
             'parent'  => $parent,
-            'improvement_proof' => ($this->improvementProofs ?? new ImprovementProofService())->build($parent, $current),
+            'improvement_proof' => $this->improvementProofs->build($parent, $current),
         ];
     }
 
@@ -238,13 +241,12 @@ final class ScanService
      */
     private function persistRecommendations(int $organizationId, int $scanId, string $model, array $metrics, array $score): void
     {
-        if ($this->controlRecommendations === null) {
+        if ($this->controlRecommendations === null || $this->controlRecommendationEngine === null) {
             return;
         }
 
-        $engine = $this->controlRecommendationEngine ?? new ControlRecommendationService();
         $policy = $this->orgSettingArray($organizationId, 'recommendation_policy', []);
-        $controls = $engine->recommend($model, $metrics, $score, $policy);
+        $controls = $this->controlRecommendationEngine->recommend($model, $metrics, $score, $policy);
         $this->controlRecommendations->replaceForScan($scanId, $controls);
     }
 

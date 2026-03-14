@@ -46,18 +46,41 @@ def run() -> None:
 
     while True:
         job: dict[str, Any] | None = None
+        frame_batch: dict[str, Any] | None = None
 
         try:
             job = live_worker.fetch_next_job()
-            if job is None:
-                time.sleep(POLL_INTERVAL_SECONDS)
+            if job is not None:
+                session_id = job.get("session_id", "?")
+                print(f"[live-worker-runner] processing session_id={session_id}")
+
+                live_worker.process_live_session(job)
+                print(f"[live-worker-runner] session_id={session_id} initialised")
                 continue
 
-            session_id = job.get("session_id", "?")
-            print(f"[live-worker-runner] processing session_id={session_id}")
+            frame_batch = live_worker.fetch_next_frame_batch()
+            if frame_batch is not None:
+                session_id = frame_batch.get("session_id", "?")
+                frame_count = len(frame_batch.get("frames", [])) if isinstance(frame_batch.get("frames"), list) else 0
+                print(
+                    f"[live-worker-runner] processing frame batch for session_id={session_id} "
+                    f"frames={frame_count}"
+                )
+                result = live_worker.process_uploaded_frame_batch(frame_batch)
+                telemetry = result.get("telemetry") if isinstance(result, dict) else {}
+                telemetry = telemetry if isinstance(telemetry, dict) else {}
+                print(
+                    f"[live-worker-runner] frame batch processed session_id={session_id} "
+                    f"processed={result.get('processed', 0)} skipped={result.get('skipped', 0)} "
+                    f"avg_latency_ms={result.get('avg_latency_ms', 0.0)} "
+                    f"worker_lag_ms_avg={telemetry.get('worker_lag_ms_avg', 0.0)} "
+                    f"decode_failures={telemetry.get('worker_decode_failures', 0)} "
+                    f"reason={result.get('dropped_reason', 'processed')}"
+                )
+                continue
 
-            live_worker.process_live_session(job)
-            print(f"[live-worker-runner] session_id={session_id} initialised")
+            time.sleep(POLL_INTERVAL_SECONDS)
+            continue
 
         except Exception as exc:  # noqa: BLE001
             print(f"[live-worker-runner] job failed: {exc}")

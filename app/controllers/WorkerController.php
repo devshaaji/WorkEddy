@@ -9,12 +9,11 @@ use WorkEddy\Contracts\QueueInterface;
 use WorkEddy\Helpers\InternalRequestAuth;
 use WorkEddy\Helpers\Response;
 use WorkEddy\Helpers\Validator;
+use WorkEddy\Helpers\WorkerContract;
 use WorkEddy\Services\ScanService;
 
 final class WorkerController
 {
-    private const SCAN_QUEUE = 'scan_jobs';
-
     public function __construct(
         private readonly ScanService    $scans,
         private readonly QueueInterface $queue,
@@ -24,7 +23,7 @@ final class WorkerController
     {
         InternalRequestAuth::requireWorkerToken();
 
-        $job = $this->queue->dequeue(self::SCAN_QUEUE);
+        $job = $this->queue->dequeue(WorkerContract::videoQueueName());
         if ($job === null) {
             Response::noContent();
         }
@@ -35,7 +34,7 @@ final class WorkerController
     public function complete(array $body): never
     {
         InternalRequestAuth::requireWorkerToken();
-        Validator::requireFields($body, ['scan_id', 'organization_id', 'metrics']);
+        Validator::requireFields($body, WorkerContract::requiredFields('video', 'complete'));
 
         if (!is_array($body['metrics'])) {
             throw new RuntimeException('metrics must be a JSON object');
@@ -55,7 +54,7 @@ final class WorkerController
     public function fail(array $body): never
     {
         InternalRequestAuth::requireWorkerToken();
-        Validator::requireFields($body, ['scan_id', 'organization_id']);
+        Validator::requireFields($body, WorkerContract::requiredFields('video', 'fail'));
 
         $this->scans->failVideoScanFromWorker(
             (int) $body['organization_id'],
