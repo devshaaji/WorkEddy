@@ -17,7 +17,7 @@ services:
       - api
 
   api:
-    image: workeddy-app:${APP_ENV:-local}
+    image: workeddy-app
     build:
       context: .
       dockerfile: Dockerfile
@@ -38,7 +38,7 @@ services:
     restart: unless-stopped
 
   schema-sync:
-    image: workeddy-app:${APP_ENV:-local}
+    image: workeddy-app
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
@@ -53,10 +53,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    restart: unless-stopped
+    restart: no
 
   seed:
-    image: workeddy-app:${APP_ENV:-local}
+    image: workeddy-app
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
@@ -73,6 +73,7 @@ services:
         condition: service_started
     profiles:
       - ops
+    restart: no
 
   video-worker:
     build:
@@ -134,7 +135,7 @@ services:
   #   restart: unless-stopped
 
   video-retention:
-    image: workeddy-app:${APP_ENV:-local}
+    image: workeddy-app
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
@@ -149,7 +150,7 @@ services:
         condition: service_healthy
       api:
         condition: service_started
-    restart: unless-stopped
+    restart: no
 
   mysql:
     image: mysql:8.4
@@ -177,6 +178,12 @@ services:
     volumes:
       - ./infrastructure/queue/redis.conf:/etc/redis/redis.conf:ro
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
 volumes:
   mysql_data:
