@@ -97,41 +97,41 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  live-worker:
-    build:
-      context: .
-      dockerfile: infrastructure/docker/live-worker.dockerfile
-    profiles:
-      - live
-    volumes:
-      - ./workers/live-worker:/app/workers/live-worker
-      - ./workers/shared:/app/workers/shared:ro
-      - ./shared:/app/shared:ro
-      - ./ml:/app/ml
-      - storage_data:/storage
-    env_file:
-      - .env
-      - ./infrastructure/docker/compose.env
-    environment:
-      LIVE_POSE_ENGINE: ${LIVE_POSE_ENGINE:-yolo26}
-      LIVE_MULTI_PERSON_MODE: ${LIVE_MULTI_PERSON_MODE:-false}
-      LIVE_YOLO_MODEL_VARIANT: ${LIVE_YOLO_MODEL_VARIANT:-yolo26n-pose}
-      LIVE_MEDIAPIPE_MODEL_VARIANT: ${LIVE_MEDIAPIPE_MODEL_VARIANT:-pose_landmarker_lite}
-      LIVE_TARGET_FPS: ${LIVE_TARGET_FPS:-5}
-      LIVE_BATCH_WINDOW_MS: ${LIVE_BATCH_WINDOW_MS:-500}
-      LIVE_MAX_E2E_LATENCY_MS: ${LIVE_MAX_E2E_LATENCY_MS:-2000}
-      LIVE_WORKER_POLL_INTERVAL_SECONDS: ${LIVE_WORKER_POLL_INTERVAL_SECONDS:-1}
-      LIVE_WORKER_COUNT: ${LIVE_WORKER_COUNT:-1}
-    healthcheck:
-      test: ["CMD", "python", "/app/workers/shared/container_healthcheck.py", "live-worker"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    depends_on:
-      nginx:
-        condition: service_healthy
-    restart: unless-stopped
+  # live-worker:
+  #   build:
+  #     context: .
+  #     dockerfile: infrastructure/docker/live-worker.dockerfile
+  #   profiles:
+  #     - live
+  #   volumes:
+  #     - ./workers/live-worker:/app/workers/live-worker
+  #     - ./workers/shared:/app/workers/shared:ro
+  #     - ./shared:/app/shared:ro
+  #     - ./ml:/app/ml
+  #     - storage_data:/storage
+  #   env_file:
+  #     - .env
+  #     - ./infrastructure/docker/compose.env
+  #   environment:
+  #     LIVE_POSE_ENGINE: ${LIVE_POSE_ENGINE:-yolo26}
+  #     LIVE_MULTI_PERSON_MODE: ${LIVE_MULTI_PERSON_MODE:-false}
+  #     LIVE_YOLO_MODEL_VARIANT: ${LIVE_YOLO_MODEL_VARIANT:-yolo26n-pose}
+  #     LIVE_MEDIAPIPE_MODEL_VARIANT: ${LIVE_MEDIAPIPE_MODEL_VARIANT:-pose_landmarker_lite}
+  #     LIVE_TARGET_FPS: ${LIVE_TARGET_FPS:-5}
+  #     LIVE_BATCH_WINDOW_MS: ${LIVE_BATCH_WINDOW_MS:-500}
+  #     LIVE_MAX_E2E_LATENCY_MS: ${LIVE_MAX_E2E_LATENCY_MS:-2000}
+  #     LIVE_WORKER_POLL_INTERVAL_SECONDS: ${LIVE_WORKER_POLL_INTERVAL_SECONDS:-1}
+  #     LIVE_WORKER_COUNT: ${LIVE_WORKER_COUNT:-1}
+  #   healthcheck:
+  #     test: ["CMD", "python", "/app/workers/shared/container_healthcheck.py", "live-worker"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 15s
+  #   depends_on:
+  #     nginx:
+  #       condition: service_healthy
+  #   restart: unless-stopped
 
   video-retention:
     image: workeddy-app:${APP_ENV:-local}
