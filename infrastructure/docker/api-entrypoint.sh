@@ -15,6 +15,26 @@ ensure_dependencies() {
   fi
 }
 
+ensure_storage_dirs() {
+  mkdir -p \
+    /storage/uploads \
+    /storage/uploads/videos \
+    /storage/uploads/pose \
+    /storage/uploads/frames \
+    /storage/uploads/processed \
+    /storage/uploads/reports
+
+  chmod 0775 \
+    /storage/uploads \
+    /storage/uploads/videos \
+    /storage/uploads/pose \
+    /storage/uploads/frames \
+    /storage/uploads/processed \
+    /storage/uploads/reports || true
+
+  chown -R www-data:www-data /storage/uploads 2>/dev/null || true
+}
+
 wait_for_db_and_migrate() {
   attempt=1
   while [ "$attempt" -le "$MAX_RETRIES" ]; do
@@ -33,6 +53,7 @@ wait_for_db_and_migrate() {
 }
 
 ensure_dependencies
+ensure_storage_dirs
 wait_for_db_and_migrate
 
 log "starting: $*"

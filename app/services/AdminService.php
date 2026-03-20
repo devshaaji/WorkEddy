@@ -98,9 +98,12 @@ final class AdminService
         string $name,
         ?int $scanLimit,
         float $price,
-        string $billingCycle = 'monthly'
+        string $billingCycle = 'monthly',
+        array $billingLimits = [],
+        string $status = 'active',
     ): array {
-        $id = $this->adminRepo->createPlan($name, $scanLimit, $price, $billingCycle);
+        $normalizedLimits = PlanBillingDefaults::normalize($billingLimits, $name, $scanLimit);
+        $id = $this->adminRepo->createPlan($name, $scanLimit, $price, $billingCycle, $normalizedLimits, $status);
 
         return [
             'id'            => $id,
@@ -108,6 +111,8 @@ final class AdminService
             'scan_limit'    => $scanLimit,
             'price'         => $price,
             'billing_cycle' => $billingCycle,
+            'status'        => $status,
+            'billing_limits' => $normalizedLimits,
         ];
     }
 
@@ -120,6 +125,7 @@ final class AdminService
 
         $allowed  = ['name', 'scan_limit', 'price', 'billing_cycle', 'status'];
         $filtered = array_intersect_key($data, array_flip($allowed));
+        $filtered['billing_limits_json'] = $this->extractBillingLimits($plan, $data);
 
         $this->adminRepo->updatePlan($id, $filtered);
     }
@@ -159,5 +165,45 @@ final class AdminService
     public function systemStats(): array
     {
         return $this->adminRepo->systemStats();
+    }
+
+    /**
+     * @param array<string,mixed> $payload
+     * @return array<string,int|null>
+     */
+    public function extractBillingLimitsFromPayload(array $payload, ?string $planName = null, ?int $scanLimit = null): array
+    {
+        $limits = is_array($payload['billing_limits'] ?? null) ? $payload['billing_limits'] : [];
+
+        foreach (PlanBillingDefaults::KEYS as $key) {
+            if (array_key_exists($key, $payload)) {
+                $limits[$key] = $payload[$key];
+            }
+        }
+
+        return PlanBillingDefaults::normalize($limits, $planName, $scanLimit);
+    }
+
+    /**
+     * @param array<string,mixed> $plan
+     * @param array<string,mixed> $payload
+     * @return array<string,int|null>
+     */
+    private function extractBillingLimits(array $plan, array $payload): array
+    {
+        $name = (string) ($payload['name'] ?? $plan['name'] ?? '');
+        $scanLimit = array_key_exists('scan_limit', $payload)
+            ? ($payload['scan_limit'] !== null && $payload['scan_limit'] !== '' ? (int) $payload['scan_limit'] : null)
+            : (isset($plan['scan_limit']) && $plan['scan_limit'] !== null ? (int) $plan['scan_limit'] : null);
+        $current = is_array($plan['billing_limits'] ?? null) ? $plan['billing_limits'] : [];
+        $limits = is_array($payload['billing_limits'] ?? null) ? array_replace($current, $payload['billing_limits']) : $current;
+
+        foreach (PlanBillingDefaults::KEYS as $key) {
+            if (array_key_exists($key, $payload)) {
+                $limits[$key] = $payload[$key];
+            }
+        }
+
+        return PlanBillingDefaults::normalize($limits, $name, $scanLimit);
     }
 }

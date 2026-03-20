@@ -10,6 +10,7 @@
 $pageTitle  = $pageTitle  ?? 'WorkEddy';
 $activePage = $activePage ?? '';
 $content    = $content    ?? '';
+$liveFeatureEnabled = (bool) ((require dirname(__DIR__, 2) . '/app/config/live.php')['enabled'] ?? false);
 ?>
 <!doctype html>
 <html lang="en">
@@ -46,9 +47,11 @@ $content    = $content    ?? '';
       $coreNav = [
         'dashboard' => ['/dashboard',        'bi-grid-1x2',  'Dashboard'],
         'tasks'     => ['/tasks',            'bi-list-task', 'Tasks'],
+        'leading-indicators' => ['/leading-indicators/check-in', 'bi-heart-pulse', 'Wellbeing Check-in'],
+        'copilot'   => ['/copilot',          'bi-stars',     'Copilot'],
         'scans'     => ['',                  'bi-upc-scan',  'Scans'],
       ];
-      $scansActive = in_array($activePage, ['scans', 'scans-video', 'scans-compare']);
+      $scansActive = in_array($activePage, ['scans', 'scans-video', 'scans-live', 'scans-compare']);
       foreach ($coreNav as $key => [$href, $icon, $label]):
         if ($key === 'scans'): ?>
         <li class="menu-item" x-data="{ open: <?= $scansActive ? 'true' : 'false' ?> }">
@@ -61,16 +64,30 @@ $content    = $content    ?? '';
           <ul class="menu-sub list-unstyled" x-show="open">
             <li class="menu-sub-item">
               <a href="/scans/new-manual"
-                 class="menu-sub-link<?= $activePage === 'scans' ? ' active' : '' ?>">
+                 class="menu-sub-link<?= $activePage === 'scans' ? ' active' : '' ?>"
+                 x-show="$store.auth.role === 'super_admin' || $store.auth.role === 'admin' || $store.auth.role === 'supervisor' || $store.auth.role === 'worker'"
+                 x-cloak>
                 <i class="bi bi-keyboard"></i> Manual Scan
               </a>
             </li>
             <li class="menu-sub-item">
               <a href="/scans/new-video"
-                 class="menu-sub-link<?= $activePage === 'scans-video' ? ' active' : '' ?>">
+                 class="menu-sub-link<?= $activePage === 'scans-video' ? ' active' : '' ?>"
+                 x-show="$store.auth.role === 'super_admin' || $store.auth.role === 'admin' || $store.auth.role === 'supervisor' || $store.auth.role === 'worker'"
+                 x-cloak>
                 <i class="bi bi-camera-video"></i> Video Scan
               </a>
             </li>
+            <?php if ($liveFeatureEnabled): ?>
+            <li class="menu-sub-item"
+                x-show="$store.auth.role === 'super_admin' || $store.auth.role === 'admin' || $store.auth.role === 'supervisor' || $store.auth.role === 'observer'"
+                x-cloak>
+              <a href="/scans/live-capture"
+                 class="menu-sub-link<?= $activePage === 'scans-live' ? ' active' : '' ?>">
+                <i class="bi bi-broadcast"></i> Live Capture
+              </a>
+            </li>
+            <?php endif; ?>
             <li class="menu-sub-item">
               <a href="/scans/compare"
                  class="menu-sub-link<?= $activePage === 'scans-compare' ? ' active' : '' ?>">
@@ -78,6 +95,17 @@ $content    = $content    ?? '';
               </a>
             </li>
           </ul>
+        </li>
+      <?php elseif ($key === 'copilot'):
+        $cls = ($activePage === $key) ? ' active' : '';
+      ?>
+        <li class="menu-item"
+            x-show="$store.auth.role === 'admin' || $store.auth.role === 'supervisor' || $store.auth.role === 'observer' || $store.auth.role === 'super_admin'"
+            x-cloak>
+          <a class="menu-link<?= $cls ?>" href="<?= $href ?>">
+            <i class="menu-icon bi <?= $icon ?>"></i>
+            <span><?= $label ?></span>
+          </a>
         </li>
       <?php else:
         $cls = ($activePage === $key) ? ' active' : '';
@@ -260,7 +288,7 @@ $content    = $content    ?? '';
   ];
   foreach ($mobileNav as $key => [$href, $icon, $label]):
     if ($key === 'scans'):
-      $scanActive = in_array($activePage, ['scans', 'scans-video']);
+      $scanActive = in_array($activePage, ['scans', 'scans-video', 'scans-live']);
   ?>
     <div class="bottom-nav-item-wrap" x-data="{ open: false }">
       <div class="scan-sheet-backdrop" x-show="open" @click="open = false" x-cloak></div>
@@ -271,6 +299,13 @@ $content    = $content    ?? '';
         <a href="/scans/new-video" class="scan-sheet-item">
           <i class="bi bi-camera-video"></i> Video Scan
         </a>
+        <?php if ($liveFeatureEnabled): ?>
+        <a href="/scans/live-capture" class="scan-sheet-item"
+           x-show="$store.auth.role === 'admin' || $store.auth.role === 'supervisor' || $store.auth.role === 'observer' || $store.auth.role === 'super_admin'"
+           x-cloak>
+          <i class="bi bi-broadcast"></i> Live Capture
+        </a>
+        <?php endif; ?>
       </div>
       <button class="bottom-nav-item<?= $scanActive ? ' active' : '' ?> border-0 bg-transparent p-0"
               @click.stop="open = !open">
@@ -317,7 +352,7 @@ $content    = $content    ?? '';
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<script src="/assets/js/app.js"></script>
+<?php require __DIR__ . '/partials/app-scripts.php'; ?>
 <script>
 /* Sidebar toggle (mobile) */
 (function () {

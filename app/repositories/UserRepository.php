@@ -42,6 +42,19 @@ final class UserRepository
         );
     }
 
+    public function countActiveByOrganization(int $organizationId): int
+    {
+        $row = $this->db->fetchAssociative(
+            'SELECT COUNT(*) AS cnt
+             FROM users
+             WHERE organization_id = :org_id
+               AND status <> "inactive"',
+            ['org_id' => $organizationId]
+        );
+
+        return (int) ($row['cnt'] ?? 0);
+    }
+
     public function create(int $organizationId, string $name, string $email, string $passwordHash, string $role): int
     {
         $this->db->executeStatement(

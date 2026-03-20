@@ -46,7 +46,7 @@ final class ScanController
         Auth::requireRoles($claims, ['admin', 'supervisor', 'worker']);
         Validator::requireFields($body, ['task_id']);
 
-        $model = $body['model'] ?? 'reba';
+        $model = isset($body['model']) ? (string) $body['model'] : null;
 
         $scan = $this->scans->createManualScan(
             Auth::orgId($claims),
@@ -80,7 +80,7 @@ final class ScanController
             Response::error($msg, 422);
         }
 
-        $model = $body['model'] ?? 'reba';
+        $model = isset($body['model']) ? (string) $body['model'] : null;
 
         $videoPath = $this->videoService->storeUploadedFile($files['video']);
 

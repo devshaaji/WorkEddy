@@ -29,7 +29,7 @@ final class Auth
     {
         self::requireClaims($claims);
 
-        $role = (string) ($claims['role'] ?? '');
+        $role = self::role($claims);
         if ($role === 'super_admin') {
             return;
         }
@@ -53,5 +53,28 @@ final class Auth
     public static function userId(array $claims): int
     {
         return (int) ($claims['sub'] ?? 0);
+    }
+
+    /**
+     * Return normalized role from parsed JWT claims.
+     */
+    public static function role(array $claims): string
+    {
+        return (string) ($claims['role'] ?? '');
+    }
+
+    public static function canPerformScans(array $claims): bool
+    {
+        return in_array(self::role($claims), ['admin', 'supervisor', 'worker', 'super_admin'], true);
+    }
+
+    public static function canManageOrganization(array $claims): bool
+    {
+        return in_array(self::role($claims), ['admin', 'supervisor', 'super_admin'], true);
+    }
+
+    public static function canRateScans(array $claims): bool
+    {
+        return in_array(self::role($claims), ['observer', 'admin', 'super_admin'], true);
     }
 }

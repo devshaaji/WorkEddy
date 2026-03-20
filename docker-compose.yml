@@ -7,11 +7,17 @@ services:
       - ./infrastructure/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./public:/var/www/html/public:ro
       - storage_data:/storage:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       - api
 
   api:
-    image: workeddy-app:local
+    image: workeddy-app:${APP_ENV:-local}
     build:
       context: .
       dockerfile: Dockerfile
@@ -21,13 +27,27 @@ services:
       - .:/var/www/html                       # live-reload project code
       - vendor_data:/var/www/html/vendor      # preserve image-built vendor (not overwritten by host mount)
       - storage_data:/storage                 # shared upload storage with worker
-    env_file: .env
-    environment:
-      APP_ENV: local
-      DB_HOST: mysql
-      DB_PORT: 3306
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+    env_file:
+      - .env
+      - ./infrastructure/docker/compose.env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  schema-sync:
+    image: workeddy-app:${APP_ENV:-local}
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - vendor_data:/var/www/html/vendor
+      - storage_data:/storage
+    env_file:
+      - .env
+      - ./infrastructure/docker/compose.env
+    command: ["sh", "/var/www/html/infrastructure/docker/schema-sync.sh"]
     depends_on:
       mysql:
         condition: service_healthy
@@ -36,19 +56,15 @@ services:
     restart: unless-stopped
 
   seed:
-    image: workeddy-app:local
+    image: workeddy-app:${APP_ENV:-local}
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
       - vendor_data:/var/www/html/vendor
       - storage_data:/storage
-    env_file: .env
-    environment:
-      APP_ENV: local
-      DB_HOST: mysql
-      DB_PORT: 3306
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+    env_file:
+      - .env
+      - ./infrastructure/docker/compose.env
     command: ["php", "scripts/seed.php", "run"]
     depends_on:
       mysql:
@@ -58,19 +74,80 @@ services:
     profiles:
       - ops
 
-  worker:
+  video-worker:
     build:
       context: .
-      dockerfile: infrastructure/docker/worker.dockerfile
+      dockerfile: infrastructure/docker/video-worker.dockerfile
     volumes:
       - ./workers:/app/workers
+      - ./shared:/app/shared:ro
       - ./ml:/app/ml
       - storage_data:/storage                 # same volume as api service
-    env_file: .env
-    environment:
-      WORKER_API_BASE_URL: http://nginx
+    env_file:
+      - .env
+      - ./infrastructure/docker/compose.env
+    healthcheck:
+      test: ["CMD", "python", "/app/workers/shared/container_healthcheck.py", "video-worker"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     depends_on:
       nginx:
+        condition: service_healthy
+    restart: unless-stopped
+
+  live-worker:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/live-worker.dockerfile
+    profiles:
+      - live
+    volumes:
+      - ./workers/live-worker:/app/workers/live-worker
+      - ./workers/shared:/app/workers/shared:ro
+      - ./shared:/app/shared:ro
+      - ./ml:/app/ml
+      - storage_data:/storage
+    env_file:
+      - .env
+      - ./infrastructure/docker/compose.env
+    environment:
+      LIVE_POSE_ENGINE: ${LIVE_POSE_ENGINE:-yolo26}
+      LIVE_MULTI_PERSON_MODE: ${LIVE_MULTI_PERSON_MODE:-false}
+      LIVE_YOLO_MODEL_VARIANT: ${LIVE_YOLO_MODEL_VARIANT:-yolo26n-pose}
+      LIVE_MEDIAPIPE_MODEL_VARIANT: ${LIVE_MEDIAPIPE_MODEL_VARIANT:-pose_landmarker_lite}
+      LIVE_TARGET_FPS: ${LIVE_TARGET_FPS:-5}
+      LIVE_BATCH_WINDOW_MS: ${LIVE_BATCH_WINDOW_MS:-500}
+      LIVE_MAX_E2E_LATENCY_MS: ${LIVE_MAX_E2E_LATENCY_MS:-2000}
+      LIVE_WORKER_POLL_INTERVAL_SECONDS: ${LIVE_WORKER_POLL_INTERVAL_SECONDS:-1}
+      LIVE_WORKER_COUNT: ${LIVE_WORKER_COUNT:-1}
+    healthcheck:
+      test: ["CMD", "python", "/app/workers/shared/container_healthcheck.py", "live-worker"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      nginx:
+        condition: service_healthy
+    restart: unless-stopped
+
+  video-retention:
+    image: workeddy-app:${APP_ENV:-local}
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - vendor_data:/var/www/html/vendor
+      - storage_data:/storage
+    env_file:
+      - .env
+      - ./infrastructure/docker/compose.env
+    command: ["sh", "-lc", "while true; do php scripts/cleanup-videos.php; sleep $${VIDEO_CLEANUP_INTERVAL_SECONDS:-86400}; done"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      api:
         condition: service_started
     restart: unless-stopped
 
@@ -99,8 +176,10 @@ services:
       - "6380:6379"
     volumes:
       - ./infrastructure/queue/redis.conf:/etc/redis/redis.conf:ro
+      - redis_data:/data
 
 volumes:
   mysql_data:
+  redis_data:
   vendor_data:    # PHP Composer dependencies (built inside image, not overridden by host)
   storage_data:   # Shared upload/processed file storage (api writes, worker reads)

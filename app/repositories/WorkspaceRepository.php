@@ -7,6 +7,7 @@ namespace WorkEddy\Repositories;
 use DateTimeInterface;
 use Doctrine\DBAL\Connection;
 use RuntimeException;
+use WorkEddy\Services\PlanBillingDefaults;
 
 final class WorkspaceRepository
 {
@@ -34,6 +35,32 @@ final class WorkspaceRepository
         return $row;
     }
 
+    /**
+     * @return array<string,mixed>
+     */
+    public function organizationSettings(int $organizationId): array
+    {
+        $org = $this->findById($organizationId);
+        $raw = $org['settings'] ?? null;
+
+        if (is_array($raw)) {
+            return $raw;
+        }
+
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
+    }
+
+    public function organizationSetting(int $organizationId, string $key, mixed $default = null): mixed
+    {
+        $settings = $this->organizationSettings($organizationId);
+        return array_key_exists($key, $settings) ? $settings[$key] : $default;
+    }
+
     public function create(string $name, string $plan = 'starter'): int
     {
         $this->db->executeStatement(
@@ -48,7 +75,8 @@ final class WorkspaceRepository
     {
         $row = $this->db->fetchAssociative(
             'SELECT s.id AS subscription_id,
-                    p.id, p.name, p.scan_limit, p.price, p.billing_cycle, s.start_date, s.end_date, s.status
+                    p.id, p.name, p.scan_limit, p.price, p.billing_cycle, p.billing_limits_json,
+                    s.start_date, s.end_date, s.status
              FROM subscriptions s
              INNER JOIN plans p ON p.id = s.plan_id
              WHERE s.organization_id = :org_id AND s.status = "active"
@@ -59,38 +87,64 @@ final class WorkspaceRepository
             throw new RuntimeException('No active subscription found');
         }
 
-        return $row;
+        return $this->hydratePlanRow($row);
     }
 
-    public function usageCountForPeriod(int $organizationId, DateTimeInterface $periodStart, DateTimeInterface $periodEnd): int
+    public function usageCountForPeriod(
+        int $organizationId,
+        DateTimeInterface $periodStart,
+        DateTimeInterface $periodEnd,
+        ?string $usageType = null
+    ): int
     {
-        $row = $this->db->fetchAssociative(
-            'SELECT COUNT(*) AS used FROM usage_records
+        $sql = 'SELECT COUNT(*) AS used FROM usage_records
              WHERE organization_id = :org_id
                AND created_at >= :period_start
-               AND created_at < :period_end',
-            [
-                'org_id' => $organizationId,
-                'period_start' => $periodStart->format('Y-m-d H:i:s'),
-                'period_end' => $periodEnd->format('Y-m-d H:i:s'),
-            ]
+               AND created_at < :period_end';
+        $params = [
+            'org_id' => $organizationId,
+            'period_start' => $periodStart->format('Y-m-d H:i:s'),
+            'period_end' => $periodEnd->format('Y-m-d H:i:s'),
+        ];
+
+        if ($usageType !== null && $usageType !== '') {
+            $sql .= ' AND usage_type = :usage_type';
+            $params['usage_type'] = $usageType;
+        }
+
+        $row = $this->db->fetchAssociative(
+            $sql,
+            $params
         );
 
         return (int) ($row['used'] ?? 0);
     }
 
-    public function reservationCountForPeriod(int $organizationId, DateTimeInterface $periodStart, DateTimeInterface $periodEnd): int
+    public function reservationCountForPeriod(
+        int $organizationId,
+        DateTimeInterface $periodStart,
+        DateTimeInterface $periodEnd,
+        ?string $usageType = null
+    ): int
     {
-        $row = $this->db->fetchAssociative(
-            'SELECT COUNT(*) AS reserved FROM usage_reservations
+        $sql = 'SELECT COUNT(*) AS reserved FROM usage_reservations
              WHERE organization_id = :org_id
                AND created_at >= :period_start
-               AND created_at < :period_end',
-            [
-                'org_id' => $organizationId,
-                'period_start' => $periodStart->format('Y-m-d H:i:s'),
-                'period_end' => $periodEnd->format('Y-m-d H:i:s'),
-            ]
+               AND created_at < :period_end';
+        $params = [
+            'org_id' => $organizationId,
+            'period_start' => $periodStart->format('Y-m-d H:i:s'),
+            'period_end' => $periodEnd->format('Y-m-d H:i:s'),
+        ];
+
+        if ($usageType !== null && $usageType !== '') {
+            $sql .= ' AND usage_type = :usage_type';
+            $params['usage_type'] = $usageType;
+        }
+
+        $row = $this->db->fetchAssociative(
+            $sql,
+            $params
         );
 
         return (int) ($row['reserved'] ?? 0);
@@ -127,7 +181,13 @@ final class WorkspaceRepository
 
     public function allPlans(): array
     {
-        return $this->db->fetchAllAssociative('SELECT id, name, scan_limit, price, billing_cycle FROM plans ORDER BY id ASC');
+        $rows = $this->db->fetchAllAssociative(
+            'SELECT id, name, scan_limit, price, billing_cycle, billing_limits_json, status
+             FROM plans
+             ORDER BY id ASC'
+        );
+
+        return array_map(fn (array $row): array => $this->hydratePlanRow($row), $rows);
     }
 
     public function updateOrg(int $id, array $data): void
@@ -177,5 +237,22 @@ final class WorkspaceRepository
         $this->hasOrganizationSettingsColumn = array_key_exists('settings', $columns);
 
         return $this->hasOrganizationSettingsColumn;
+    }
+
+    /**
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
+     */
+    private function hydratePlanRow(array $row): array
+    {
+        $scanLimit = isset($row['scan_limit']) && $row['scan_limit'] !== null ? (int) $row['scan_limit'] : null;
+        $row['billing_limits'] = PlanBillingDefaults::normalize(
+            $row['billing_limits_json'] ?? null,
+            isset($row['name']) ? (string) $row['name'] : null,
+            $scanLimit,
+        );
+        unset($row['billing_limits_json']);
+
+        return $row;
     }
 }

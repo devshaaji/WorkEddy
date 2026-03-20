@@ -16,12 +16,16 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../bootstrap.php';
+
+use WorkEddy\Core\Database;
 
 // ── Configuration ────────────────────────────────────────────────────────
 $retentionDays = (int) (getenv('VIDEO_RETENTION_DAYS') ?: 30);
-$videoDir      = __DIR__ . '/../storage/uploads/videos';
+$videoDir      = '/storage/uploads/videos';
 $dryRun        = in_array('--dry-run', $argv ?? [], true);
+
+$db = Database::connection();
 
 echo sprintf(
     "[%s] Video retention cleanup started (retention=%d days, dry_run=%s)\n",
@@ -35,54 +39,82 @@ if (!is_dir($videoDir)) {
     exit(0);
 }
 
-// ── Scan for expired video files ─────────────────────────────────────────
-$cutoff  = time() - ($retentionDays * 86400);
+// ── Scan for expired video files (org-aware retention) ───────────────────
 $deleted = 0;
 $freed   = 0;
 $errors  = 0;
 
-$iterator = new RecursiveIteratorIterator(
-    new RecursiveDirectoryIterator($videoDir, FilesystemIterator::SKIP_DOTS),
-    RecursiveIteratorIterator::CHILD_FIRST
+$rows = $db->fetchAllAssociative(
+    'SELECT s.id, s.organization_id, s.video_path, s.created_at, o.settings
+     FROM scans s
+     INNER JOIN organizations o ON o.id = s.organization_id
+     WHERE s.scan_type = "video"
+       AND s.video_path IS NOT NULL
+       AND s.video_path != ""
+       AND s.status IN ("completed", "invalid")'
 );
 
-foreach ($iterator as $file) {
-    if (!$file->isFile()) {
+foreach ($rows as $row) {
+    $scanId = (int) ($row['id'] ?? 0);
+    $orgId = (int) ($row['organization_id'] ?? 0);
+    $videoPath = (string) ($row['video_path'] ?? '');
+    if ($scanId <= 0 || $orgId <= 0 || $videoPath === '') {
         continue;
     }
 
-    // Only process video files
-    $ext = strtolower($file->getExtension());
-    if (!in_array($ext, ['mp4', 'mov', 'avi', 'webm', 'mkv'], true)) {
+    $policyDays = effectiveRetentionDays($row['settings'] ?? null, $retentionDays);
+    if ($policyDays <= 0) {
         continue;
     }
 
-    $mtime = $file->getMTime();
-    if ($mtime >= $cutoff) {
-        continue; // file is still within retention window
+    $createdAtRaw = (string) ($row['created_at'] ?? '');
+    $createdAtTs = strtotime($createdAtRaw);
+    if ($createdAtTs === false) {
+        continue;
     }
 
-    $path = $file->getRealPath();
-    $size = $file->getSize();
-    $age  = (int) round((time() - $mtime) / 86400);
+    $expiryTs = $createdAtTs + ($policyDays * 86400);
+    if (time() < $expiryTs) {
+        continue;
+    }
+
+    if (!is_file($videoPath)) {
+        if (!$dryRun) {
+            $db->executeStatement('UPDATE scans SET video_path = NULL WHERE id = :id', ['id' => $scanId]);
+        }
+        continue;
+    }
+
+    $size = (int) (filesize($videoPath) ?: 0);
+    $age  = (int) round((time() - $createdAtTs) / 86400);
 
     if ($dryRun) {
-        echo sprintf("  [DRY] Would delete: %s (%s, %d days old)\n", $path, formatBytes($size), $age);
+        echo sprintf(
+            "  [DRY] Would delete: %s (%s, %d days old, org=%d, retention=%d days)\n",
+            $videoPath,
+            formatBytes($size),
+            $age,
+            $orgId,
+            $policyDays,
+        );
+        continue;
+    }
+
+    if (@unlink($videoPath)) {
+        $db->executeStatement('UPDATE scans SET video_path = NULL WHERE id = :id', ['id' => $scanId]);
+        echo sprintf("  Deleted: %s (%s, %d days old, org=%d)\n", $videoPath, formatBytes($size), $age, $orgId);
+        $deleted++;
+        $freed += $size;
     } else {
-        if (@unlink($path)) {
-            echo sprintf("  Deleted: %s (%s, %d days old)\n", $path, formatBytes($size), $age);
-            $deleted++;
-            $freed += $size;
-        } else {
-            echo sprintf("  ERROR: Could not delete: %s\n", $path);
-            $errors++;
-        }
+        echo sprintf("  ERROR: Could not delete: %s (scan_id=%d)\n", $videoPath, $scanId);
+        $errors++;
     }
 }
 
 // ── Also clean up extracted frames ───────────────────────────────────────
-$framesDir = __DIR__ . '/../storage/uploads/frames';
+$framesDir = '/storage/uploads/frames';
 if (is_dir($framesDir)) {
+    $cutoff = time() - ($retentionDays * 86400);
     $frameIterator = new RecursiveIteratorIterator(
         new RecursiveDirectoryIterator($framesDir, FilesystemIterator::SKIP_DOTS),
         RecursiveIteratorIterator::CHILD_FIRST
@@ -129,4 +161,29 @@ function formatBytes(int $bytes): string
     if ($bytes >= 1_048_576)     return round($bytes / 1_048_576, 2) . ' MB';
     if ($bytes >= 1024)          return round($bytes / 1024, 2) . ' KB';
     return $bytes . ' B';
+}
+
+function effectiveRetentionDays(mixed $rawSettings, int $defaultDays): int
+{
+    $settings = [];
+
+    if (is_string($rawSettings) && $rawSettings !== '') {
+        $decoded = json_decode($rawSettings, true);
+        if (is_array($decoded)) {
+            $settings = $decoded;
+        }
+    } elseif (is_array($rawSettings)) {
+        $settings = $rawSettings;
+    }
+
+    if (!array_key_exists('video_retention_days', $settings)) {
+        return $defaultDays;
+    }
+
+    $value = (int) $settings['video_retention_days'];
+    if ($value < 0) {
+        return $defaultDays;
+    }
+
+    return $value;
 }

@@ -18,6 +18,7 @@ final class ScanComparisonService
     public function __construct(
         private readonly ScanRepository $scans,
         private readonly AssessmentEngine $assessmentEngine,
+        private readonly ImprovementProofService $improvementProofs,
     ) {}
 
     public function compare(int $organizationId, int $scanAId, int $scanBId): array
@@ -30,8 +31,8 @@ final class ScanComparisonService
             throw new RuntimeException('scanA and scanB must be different scans');
         }
 
-        $scanA = $this->scans->findById($organizationId, $scanAId);
-        $scanB = $this->scans->findById($organizationId, $scanBId);
+        $scanA = $this->scans->findAnalysisById($organizationId, $scanAId);
+        $scanB = $this->scans->findAnalysisById($organizationId, $scanBId);
 
         $modelA = strtolower(trim((string) ($scanA['model'] ?? '')));
         $modelB = strtolower(trim((string) ($scanB['model'] ?? '')));
@@ -64,6 +65,8 @@ final class ScanComparisonService
         $rawDelta = $this->roundOrNull($rawA !== null && $rawB !== null ? $rawB - $rawA : null);
         $normDelta = $this->roundOrNull($normA !== null && $normB !== null ? $normB - $normA : null);
 
+        $nodes = $this->compareNodes($modelA, $scanA, $scanB);
+
         return [
             'model' => $modelA,
             'algorithm_version' => $algorithmA,
@@ -77,8 +80,13 @@ final class ScanComparisonService
                 'raw' => $rawDelta,
                 'normalized' => $normDelta,
             ],
-            'nodes' => $this->compareNodes($modelA, $scanA, $scanB),
+            'nodes' => $nodes,
             'pose_delta' => $this->comparePoseAngles($scanA, $scanB),
+            'improvement_proof' => $this->improvementProofs->build(
+                $this->scanSummary($scanA),
+                $this->scanSummary($scanB),
+                $nodes,
+            ),
         ];
     }
 

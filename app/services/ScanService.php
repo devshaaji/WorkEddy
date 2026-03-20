@@ -7,14 +7,16 @@ namespace WorkEddy\Services;
 use RuntimeException;
 use WorkEddy\Contracts\CacheInterface;
 use WorkEddy\Contracts\QueueInterface;
+use WorkEddy\Helpers\WorkerContract;
+use WorkEddy\Repositories\ControlRecommendationRepository;
 use WorkEddy\Repositories\ScanRepository;
 use WorkEddy\Repositories\TaskRepository;
+use WorkEddy\Repositories\WorkspaceRepository;
 use WorkEddy\Services\Ergonomics\AssessmentEngine;
 
 final class ScanService
 {
     private const VALID_MODELS = ['rula', 'reba', 'niosh'];
-    private const SCAN_QUEUE   = 'scan_jobs';
     private const SCAN_LIST_CACHE_TTL = 300;
     private const VALID_SCAN_STATUSES = ['pending', 'processing', 'completed', 'invalid'];
     private const MAX_SCAN_LIST_LIMIT = 500;
@@ -25,28 +27,34 @@ final class ScanService
         private readonly AssessmentEngine  $assessmentEngine,
         private readonly UsageMeterService $usageMeter,
         private readonly QueueInterface    $queue,
+        private readonly ImprovementProofService $improvementProofs,
         private readonly ?CacheInterface   $cache = null,
         private readonly int               $scanListCacheTtl = self::SCAN_LIST_CACHE_TTL,
+        private readonly ?WorkspaceRepository $workspaces = null,
+        private readonly ?ControlRecommendationRepository $controlRecommendations = null,
+        private readonly ?ControlRecommendationService $controlRecommendationEngine = null,
+        private readonly ?VideoProcessingService $videos = null,
     ) {}
 
-    public function createManualScan(int $organizationId, int $userId, int $taskId, string $model, array $metrics): array
+    public function createManualScan(int $organizationId, int $userId, int $taskId, ?string $model, array $metrics): array
     {
-        $model = $this->normalizeModel($model);
+        $model = $this->resolveModelForInput($organizationId, $model, 'manual');
         $this->assessmentEngine->validateCombination($model, 'manual');
 
         $this->tasks->findById($organizationId, $taskId);
-        $this->usageMeter->assertAvailable($organizationId);
+        $this->usageMeter->assertVideoScanAvailable($organizationId);
 
         $score  = $this->assessmentEngine->assess($model, $metrics);
         $scanId = $this->scans->createManual($organizationId, $userId, $taskId, $model, $score, $metrics);
+        $this->persistRecommendations($organizationId, $scanId, $model, $metrics, $score);
         $this->invalidateScanLists($organizationId);
 
-        return $this->scans->findById($organizationId, $scanId);
+        return $this->scans->findDetailedById($organizationId, $scanId);
     }
 
-    public function createVideoScan(int $organizationId, int $userId, int $taskId, string $model, string $videoPath, ?int $parentScanId = null): array
+    public function createVideoScan(int $organizationId, int $userId, int $taskId, ?string $model, string $videoPath, ?int $parentScanId = null): array
     {
-        $model = $this->normalizeModel($model);
+        $model = $this->resolveModelForInput($organizationId, $model, 'video');
         $this->assessmentEngine->validateCombination($model, 'video');
 
         if (trim($videoPath) === '') {
@@ -64,12 +72,12 @@ final class ScanService
         $this->scans->reserveUsage($organizationId, $scanId, 'video_scan');
 
         try {
-            $this->queue->enqueue(self::SCAN_QUEUE, [
-                'scan_id'         => $scanId,
+            $this->queue->enqueue(WorkerContract::videoQueueName(), WorkerContract::videoJobPayload([
+                'scan_id' => $scanId,
                 'organization_id' => $organizationId,
-                'video_path'      => $videoPath,
-                'model'           => $model,
-            ]);
+                'video_path' => $videoPath,
+                'model' => $model,
+            ]));
         } catch (\Throwable $e) {
             $this->scans->markVideoInvalid($organizationId, $scanId, 'Queue enqueue failed');
             $this->invalidateScanLists($organizationId);
@@ -81,7 +89,13 @@ final class ScanService
         return ['scan_id' => $scanId, 'status' => 'processing'];
     }
 
-    public function completeVideoScanFromWorker(int $organizationId, int $scanId, array $metrics, ?string $model = null): array
+    public function completeVideoScanFromWorker(
+        int $organizationId,
+        int $scanId,
+        array $metrics,
+        ?string $model = null,
+        ?string $poseVideoPath = null
+    ): array
     {
         if ($scanId <= 0) {
             throw new RuntimeException('scan_id must be a positive integer');
@@ -107,10 +121,23 @@ final class ScanService
         $this->assessmentEngine->validateCombination($scanModel, 'video');
         $score = $this->assessmentEngine->assess($scanModel, $metrics);
 
-        $this->scans->completeVideoProcessing($organizationId, $scanId, $scanModel, $score, $metrics);
+        $resolvedPoseVideoPath = null;
+        if ($poseVideoPath !== null && trim($poseVideoPath) !== '') {
+            $resolvedPoseVideoPath = trim($poseVideoPath);
+            if (
+                !str_starts_with($resolvedPoseVideoPath, '/storage/uploads/pose/')
+                && !str_starts_with($resolvedPoseVideoPath, '/storage/uploads/videos/')
+            ) {
+                throw new RuntimeException('pose_video_path must be under /storage/uploads/pose/ or /storage/uploads/videos/');
+            }
+        }
+
+        $this->scans->completeVideoProcessing($organizationId, $scanId, $scanModel, $score, $metrics, $resolvedPoseVideoPath);
+        $this->persistRecommendations($organizationId, $scanId, $scanModel, $metrics, $score);
+        $this->applyPrivacyPolicyAfterProcessing($organizationId, $scanId, $scan, $resolvedPoseVideoPath);
         $this->invalidateScanLists($organizationId);
 
-        return $this->scans->findById($organizationId, $scanId);
+        return $this->scans->findDetailedById($organizationId, $scanId);
     }
 
     public function failVideoScanFromWorker(int $organizationId, int $scanId, string $errorMessage): void
@@ -125,12 +152,14 @@ final class ScanService
 
         $message = trim($errorMessage) !== '' ? trim($errorMessage) : 'Processing failed';
         $this->scans->markVideoInvalid($organizationId, $scanId, $message);
+        $scan = $this->scans->findWorkerScan($organizationId, $scanId);
+        $this->applyPrivacyPolicyAfterProcessing($organizationId, $scanId, $scan);
         $this->invalidateScanLists($organizationId);
     }
 
     public function getById(int $organizationId, int $scanId): array
     {
-        return $this->scans->findById($organizationId, $scanId);
+        return $this->scans->findDetailedById($organizationId, $scanId);
     }
 
     public function listByOrganization(int $organizationId, ?string $status = null, ?int $limit = null): array
@@ -190,19 +219,123 @@ final class ScanService
      */
     public function compare(int $organizationId, int $scanId): array
     {
-        $current = $this->scans->findById($organizationId, $scanId);
+        $current = $this->scans->findDetailedById($organizationId, $scanId);
 
         $parentId = $current['parent_scan_id'] ?? null;
         if (!$parentId) {
             throw new RuntimeException('This scan has no parent scan to compare against');
         }
 
-        $parent = $this->scans->findById($organizationId, (int) $parentId);
+        $parent = $this->scans->findDetailedById($organizationId, (int) $parentId);
 
         return [
             'current' => $current,
             'parent'  => $parent,
+            'improvement_proof' => $this->improvementProofs->build($parent, $current),
         ];
+    }
+
+    /**
+     * @param array<string,mixed> $metrics
+     * @param array<string,mixed> $score
+     */
+    private function persistRecommendations(int $organizationId, int $scanId, string $model, array $metrics, array $score): void
+    {
+        if ($this->controlRecommendations === null || $this->controlRecommendationEngine === null) {
+            return;
+        }
+
+        $policy = $this->orgSettingArray($organizationId, 'recommendation_policy', []);
+        $controls = $this->controlRecommendationEngine->recommend($model, $metrics, $score, $policy);
+        $this->controlRecommendations->replaceForScan($scanId, $controls);
+    }
+
+    /**
+     * @param array<string,mixed> $default
+     * @return array<string,mixed>
+     */
+    private function orgSettingArray(int $organizationId, string $key, array $default = []): array
+    {
+        if ($this->workspaces === null) {
+            return $default;
+        }
+
+        $value = $this->workspaces->organizationSetting($organizationId, $key, $default);
+        return is_array($value) ? $value : $default;
+    }
+
+    /**
+     * @param array<string,mixed> $scan
+     */
+    private function applyPrivacyPolicyAfterProcessing(int $organizationId, int $scanId, array $scan, ?string $retainedVideoPath = null): void
+    {
+        if (!$this->orgSettingBool($organizationId, 'auto_delete_video', false)) {
+            return;
+        }
+
+        $videoPath = trim((string) ($scan['video_path'] ?? ''));
+        $retainedPath = trim((string) ($retainedVideoPath ?? ''));
+
+        if ($videoPath !== '' && $videoPath !== $retainedPath) {
+            if ($this->videos !== null) {
+                $this->videos->deleteVideo($videoPath);
+            } elseif (is_file($videoPath)) {
+                @unlink($videoPath);
+            }
+        }
+
+        // Keep the processed pose video path when provided by the worker.
+        if ($retainedPath !== '') {
+            return;
+        }
+
+        $this->scans->clearVideoPath($organizationId, $scanId);
+    }
+
+    private function resolveModelForInput(int $organizationId, ?string $requestedModel, string $inputType): string
+    {
+        $candidate = strtolower(trim((string) $requestedModel));
+
+        if ($candidate === '' && $this->workspaces !== null) {
+            $candidate = strtolower(trim((string) $this->workspaces->organizationSetting($organizationId, 'default_model', '')));
+        }
+
+        if ($candidate === '') {
+            $candidate = 'reba';
+        }
+
+        $model = $this->normalizeModel($candidate);
+        $service = $this->assessmentEngine->resolve($model);
+
+        if (in_array($inputType, $service->supportedInputTypes(), true)) {
+            return $model;
+        }
+
+        // Safe fallback when org default is incompatible (e.g., NIOSH for video).
+        return $inputType === 'video' ? 'reba' : $model;
+    }
+
+    private function orgSettingBool(int $organizationId, string $key, bool $default): bool
+    {
+        if ($this->workspaces === null) {
+            return $default;
+        }
+
+        $value = $this->workspaces->organizationSetting($organizationId, $key, $default);
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return ((int) $value) === 1;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+        if ($normalized === '') {
+            return $default;
+        }
+
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
     }
 
     private function normalizeModel(string $model): string

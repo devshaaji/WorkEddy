@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace WorkEddy\Repositories;
 
 use Doctrine\DBAL\Connection;
+use WorkEddy\Services\PlanBillingDefaults;
 
 final class AdminRepository
 {
@@ -125,13 +126,15 @@ final class AdminRepository
 
     public function listPlans(): array
     {
-        return $this->db->fetchAllAssociative(
-            'SELECT p.id, p.name, p.scan_limit, p.price, p.billing_cycle, p.status,
+        $rows = $this->db->fetchAllAssociative(
+            'SELECT p.id, p.name, p.scan_limit, p.price, p.billing_cycle, p.billing_limits_json, p.status,
                     (SELECT COUNT(*) FROM subscriptions s
                      WHERE s.plan_id = p.id AND s.status = :sub_status) AS active_subs
              FROM plans p ORDER BY p.id ASC',
             ['sub_status' => 'active']
         );
+
+        return array_map(fn (array $row): array => $this->hydratePlan($row), $rows);
     }
 
     public function findPlanById(int $id): ?array
@@ -140,24 +143,30 @@ final class AdminRepository
             'SELECT * FROM plans WHERE id = :id LIMIT 1',
             ['id' => $id]
         );
-        return $row ?: null;
+        return $row ? $this->hydratePlan($row) : null;
     }
 
     public function createPlan(
         string $name,
         ?int $scanLimit,
         float $price,
-        string $billingCycle = 'monthly'
+        string $billingCycle = 'monthly',
+        array $billingLimits = [],
+        string $status = 'active',
     ): int {
         $this->db->executeStatement(
-            'INSERT INTO plans (name, scan_limit, price, billing_cycle, status)
-             VALUES (:name, :lim, :price, :cycle, :status)',
+            'INSERT INTO plans (name, scan_limit, price, billing_cycle, billing_limits_json, status)
+             VALUES (:name, :lim, :price, :cycle, :billing_limits_json, :status)',
             [
                 'name'   => $name,
                 'lim'    => $scanLimit,
                 'price'  => $price,
                 'cycle'  => $billingCycle,
-                'status' => 'active',
+                'billing_limits_json' => json_encode(
+                    PlanBillingDefaults::normalize($billingLimits, $name, $scanLimit),
+                    JSON_UNESCAPED_UNICODE
+                ),
+                'status' => $status,
             ]
         );
         return (int) $this->db->lastInsertId();
@@ -175,6 +184,11 @@ final class AdminRepository
             }
         }
 
+        if (array_key_exists('billing_limits_json', $data)) {
+            $sets[] = 'billing_limits_json = :billing_limits_json';
+            $params['billing_limits_json'] = json_encode($data['billing_limits_json'], JSON_UNESCAPED_UNICODE);
+        }
+
         if (empty($sets)) {
             return;
         }
@@ -188,6 +202,23 @@ final class AdminRepository
     public function deletePlan(int $id): void
     {
         $this->db->executeStatement('DELETE FROM plans WHERE id = :id', ['id' => $id]);
+    }
+
+    /**
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
+     */
+    private function hydratePlan(array $row): array
+    {
+        $scanLimit = isset($row['scan_limit']) && $row['scan_limit'] !== null ? (int) $row['scan_limit'] : null;
+        $row['billing_limits'] = PlanBillingDefaults::normalize(
+            $row['billing_limits_json'] ?? null,
+            isset($row['name']) ? (string) $row['name'] : null,
+            $scanLimit,
+        );
+        unset($row['billing_limits_json']);
+
+        return $row;
     }
 
     /* ── System Settings ──────────────────────────────────────────────── */

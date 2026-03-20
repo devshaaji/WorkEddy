@@ -83,7 +83,13 @@ final class AdminController
             $body['name'],
             isset($body['scan_limit']) ? (int) $body['scan_limit'] : null,
             (float) $body['price'],
-            $body['billing_cycle'] ?? 'monthly'
+            $body['billing_cycle'] ?? 'monthly',
+            $this->admin->extractBillingLimitsFromPayload(
+                $body,
+                (string) $body['name'],
+                isset($body['scan_limit']) ? (int) $body['scan_limit'] : null,
+            ),
+            $body['status'] ?? 'active',
         );
         Response::created(['data' => $result]);
     }

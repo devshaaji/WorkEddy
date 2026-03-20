@@ -22,6 +22,10 @@ final class AuthMiddleware
         $token       = str_starts_with($authHeader, 'Bearer ') ? trim(substr($authHeader, 7)) : null;
 
         if ($token === null || $token === '') {
+            $token = trim((string) ($_COOKIE['we_token'] ?? ''));
+        }
+
+        if ($token === null || $token === '') {
             Response::error('Unauthorized', 401);
         }
 

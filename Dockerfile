@@ -16,6 +16,18 @@ RUN echo 'upload_max_filesize = 200M' >> /usr/local/etc/php/conf.d/workeddy.ini 
  && echo 'display_errors = Off'        >> /usr/local/etc/php/conf.d/workeddy.ini \
  && echo 'log_errors = On'             >> /usr/local/etc/php/conf.d/workeddy.ini
 
+# Raise FPM pool capacity – default is 5 which is exhausted when both workers
+# poll concurrently alongside regular HTTP traffic.
+# zz- prefix ensures this loads after www.conf and wins the override.
+RUN { \
+    echo '[www]'; \
+    echo 'pm = dynamic'; \
+    echo 'pm.max_children = 20'; \
+    echo 'pm.start_servers = 5'; \
+    echo 'pm.min_spare_servers = 5'; \
+    echo 'pm.max_spare_servers = 15'; \
+} > /usr/local/etc/php-fpm.d/zz-workeddy-pool.conf
+
 WORKDIR /var/www/html
 
 # Copy dependency manifests and install (separate layer for cache efficiency)

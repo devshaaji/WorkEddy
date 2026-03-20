@@ -1,0 +1,60 @@
+{
+  "queue_name": "live_session_jobs",
+  "frame_queue_name": "live_session_frame_batches",
+  "routes": {
+    "next_job": "/internal/live-worker/jobs/next",
+    "next_batch": "/internal/live-worker/frame-batches/next",
+    "frames": "/internal/live-worker/frames",
+    "complete": "/internal/live-worker/sessions/complete",
+    "fail": "/internal/live-worker/sessions/fail"
+  },
+  "payloads": {
+    "job": {
+      "required": [
+        "session_id",
+        "organization_id",
+        "pose_engine",
+        "multi_person_mode",
+        "model_variant",
+        "model",
+        "target_fps",
+        "batch_window_ms",
+        "max_e2e_latency_ms",
+        "smoothing_alpha",
+        "min_joint_confidence",
+        "tracking_max_distance"
+      ],
+      "optional": ["stale_batch_drop_multiplier"]
+    },
+    "frames": {
+      "required": ["session_id", "organization_id", "frames"],
+      "optional": ["telemetry"]
+    },
+    "frame_batch": {
+      "required": [
+        "session_id",
+        "organization_id",
+        "pose_engine",
+        "multi_person_mode",
+        "model_variant",
+        "model",
+        "target_fps",
+        "batch_window_ms",
+        "max_e2e_latency_ms",
+        "smoothing_alpha",
+        "min_joint_confidence",
+        "tracking_max_distance",
+        "frames"
+      ],
+      "optional": ["telemetry", "stale_batch_drop_multiplier"]
+    },
+    "complete": {
+      "required": ["session_id", "organization_id"],
+      "optional": ["summary_metrics"]
+    },
+    "fail": {
+      "required": ["session_id", "organization_id"],
+      "optional": ["error_message"]
+    }
+  }
+}

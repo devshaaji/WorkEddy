@@ -10,6 +10,8 @@ use WorkEddy\Core\Migrations\MigrationInterface;
 
 const MIGRATIONS_DIR = __DIR__ . '/../database/migrations';
 const MIGRATIONS_TABLE = 'schema_migrations';
+const MIGRATION_LOCK_NAME = 'workeddy_schema_migrations';
+const MIGRATION_LOCK_TIMEOUT_SECONDS = 30;
 
 $command = strtolower((string) ($argv[1] ?? 'migrate'));
 $argument = $argv[2] ?? null;
@@ -23,12 +25,16 @@ try {
     switch ($command) {
         case 'migrate':
         case 'up':
-            migrate($db, $migrations);
+            withMigrationLock($db, static function () use ($db, $migrations): void {
+                migrate($db, $migrations);
+            });
             break;
 
         case 'rollback':
         case 'down':
-            rollback($db, $migrations, parsePositiveInt($argument ?? '1', 'Rollback batches'));
+            withMigrationLock($db, static function () use ($db, $migrations, $argument): void {
+                rollback($db, $migrations, parsePositiveInt($argument ?? '1', 'Rollback batches'));
+            });
             break;
 
         case 'status':
@@ -36,7 +42,9 @@ try {
             break;
 
         case 'fresh':
-            fresh($db, $migrations);
+            withMigrationLock($db, static function () use ($db, $migrations): void {
+                fresh($db, $migrations);
+            });
             break;
 
         default:
@@ -46,6 +54,31 @@ try {
 } catch (\Throwable $e) {
     fwrite(STDERR, '[migration-error] ' . $e->getMessage() . PHP_EOL);
     exit(1);
+}
+
+/**
+ * @param callable():void $callback
+ */
+function withMigrationLock(Connection $db, callable $callback): void
+{
+    $timeout = parsePositiveInt((string) getenv('MIGRATION_LOCK_TIMEOUT_SECONDS') ?: (string) MIGRATION_LOCK_TIMEOUT_SECONDS, 'Migration lock timeout');
+    $acquired = (int) $db->fetchOne(
+        'SELECT GET_LOCK(:name, :timeout)',
+        [
+            'name' => MIGRATION_LOCK_NAME,
+            'timeout' => $timeout,
+        ]
+    );
+
+    if ($acquired !== 1) {
+        throw new \RuntimeException('Could not acquire migration lock');
+    }
+
+    try {
+        $callback();
+    } finally {
+        $db->fetchOne('SELECT RELEASE_LOCK(:name)', ['name' => MIGRATION_LOCK_NAME]);
+    }
 }
 
 /**

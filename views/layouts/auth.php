@@ -49,6 +49,6 @@ $content   = $content   ?? '';
 
 <script src="/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<script src="/assets/js/app.js"></script>
+<?php require __DIR__ . '/partials/app-scripts.php'; ?>
 </body>
 </html>

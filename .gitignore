@@ -26,6 +26,7 @@
 *.log
 coverage/
 .phpunit.result.cache
+.playwright-cli
 
 # IDE / OS files
 .vscode/

@@ -180,6 +180,34 @@ ob_start();
       </div>
     </div><!-- /ScoreDeltaCard -->
 
+    <!-- Improvement Proof (from comparison.improvement_proof) -->
+    <div class="row g-3 mb-4" x-show="comparison?.improvement_proof" x-cloak>
+      <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+          <p class="text-muted text-sm mb-1">Risk Reduction</p>
+          <div class="h5 mb-0" x-text="(comparison?.improvement_proof?.risk_reduction_percent ?? 0) + '%' "></div>
+        </div></div>
+      </div>
+      <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+          <p class="text-muted text-sm mb-1">Score Points Improved</p>
+          <div class="h5 mb-0" x-text="comparison?.improvement_proof?.risk_reduction_points ?? 0"></div>
+        </div></div>
+      </div>
+      <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+          <p class="text-muted text-sm mb-1">Time Savings / Shift</p>
+          <div class="h5 mb-0" x-text="(comparison?.improvement_proof?.estimated_time_savings_minutes_per_shift ?? 0) + ' min'"></div>
+        </div></div>
+      </div>
+      <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+          <p class="text-muted text-sm mb-1">Avoided Injury Cost (Est.)</p>
+          <div class="h5 mb-0" x-text="'$' + Number(comparison?.improvement_proof?.estimated_avoided_injury_cost_usd_annual ?? 0).toLocaleString()"></div>
+        </div></div>
+      </div>
+    </div>
+
     <!-- ── SkeletonViewer + JointHeatmap ─────────────────────────────── -->
     <div class="row g-4 mb-4">
 

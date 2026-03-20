@@ -135,12 +135,21 @@ ob_start();
                         </a>
                       </li>
                     </template>
-                    <li x-show="s.parent_scan_id != null" x-cloak><hr class="dropdown-divider"></li>
-                    <li x-show="s.parent_scan_id != null" x-cloak>
-                      <a class="dropdown-item" :href="'/scans/' + s.id + '/compare'">
-                        <i class="bi bi-bar-chart-steps me-2 text-primary"></i>Compare with Previous
-                      </a>
-                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <template x-if="s.parent_scan_id != null">
+                      <li>
+                        <a class="dropdown-item" :href="'/scans/' + s.id + '/compare'">
+                          <i class="bi bi-bar-chart-steps me-2 text-primary"></i>Simple Compare
+                        </a>
+                      </li>
+                    </template>
+                    <template x-if="s.parent_scan_id == null">
+                      <li>
+                        <span class="dropdown-item-text text-muted">
+                          <i class="bi bi-bar-chart-steps me-2"></i>Simple Compare (repeat scan required)
+                        </span>
+                      </li>
+                    </template>
                   </ul>
                 </div>
               </td>

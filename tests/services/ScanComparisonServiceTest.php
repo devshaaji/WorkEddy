@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use WorkEddy\Repositories\ScanRepository;
 use WorkEddy\Services\Ergonomics\AssessmentEngine;
+use WorkEddy\Services\ImprovementProofService;
 use WorkEddy\Services\ScanComparisonService;
 
 final class ScanComparisonServiceTest extends TestCase
@@ -36,6 +37,8 @@ final class ScanComparisonServiceTest extends TestCase
         $this->assertNotEmpty($result['nodes']);
         $this->assertTrue($result['pose_delta']['available']);
         $this->assertArrayHasKey('trunk_angle', $result['pose_delta']['angles']);
+        $this->assertArrayHasKey('improvement_proof', $result);
+        $this->assertGreaterThan(0, $result['improvement_proof']['risk_reduction_percent']);
     }
 
     public function testRebaComparisonReturnsNodeDeltas(): void
@@ -179,6 +182,7 @@ final class ScanComparisonServiceTest extends TestCase
 
         $this->assertSame('unchanged', $result['summary']['direction']);
         $this->assertSame(0.0, $result['score_delta']['normalized']);
+        $this->assertSame('unchanged', $result['improvement_proof']['direction']);
     }
 
     private function makeService(array $scans, array $metrics): ScanComparisonService
@@ -201,7 +205,7 @@ final class ScanComparisonServiceTest extends TestCase
             });
 
         $repo = new ScanRepository($conn);
-        return new ScanComparisonService($repo, new AssessmentEngine());
+        return new ScanComparisonService($repo, new AssessmentEngine(), new ImprovementProofService());
     }
 
     private function scanRow(

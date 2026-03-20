@@ -1,0 +1,97 @@
+Treasure,
+WorkEddy is “an operational ergonomics intelligence platform that predicts risk, prescribes
+controls, verifies improvement, and connects worker health to productivity and compliance.”
+Based on our discussions, I just compared WorkEddy against what leading ergonomics and
+EHS platforms appear to offer now. The current scope is already strong on compliance,
+workflow, mobile execution, and operationally credible.The biggest gaps versus where the
+market is moving are autonomous assessment, continuous sensing, and proving business
+value fast.
+Leading ergonomics and EHS platforms already market AI video assessment, motion
+capture, CAPA workflows, dashboards, and broader EHS integration. Current vendors such
+as VelocityEHS, Cority, and Benchmark Gensuite are already pushing AI video or motion
+capture based ergonomic assessment, while industry reporting shows that many employers
+now have MSD programs and are increasingly tracking leading indicators and using
+prevention technology. That means WorkEddy should not be just digitizing assessments
+better. It should be helping employers decide faster, intervene earlier, and prove value more
+clearly.
+1. A prescriptive control engine, not just a risk score
+Most systems stop at identifying risk. WorkEddy can stand out if it recommends the best
+next action in plain operational terms. For each task, the system should rank controls by
+expected risk reduction, implementation cost, time to deploy, and likely disruption to
+throughput. It should also map each recommendation to the hierarchy of controls
+(https://www.osha.gov/sites/default/files/Hierarchy_of_Controls_02.01.23_form_508_2.pdf)
+and keep an evidence trail for why that recommendation was made. This moves the product
+from assessment software to decision software. That is a stronger moat than another
+dashboard. Current market players already emphasize automated scoring and AI insights,
+so your differentiator should be prescriptive prioritization with explainability and operational
+trade off logic.
+2. A work design simulator or ergonomic digital twin
+This is one of the biggest ways to separate yourself. Let safety and operations teams
+simulate a proposed change before they buy any work equipment, change slotting, alter
+workstation height, or redesign a pick path. A digital twin layer could estimate likely posture
+exposure, repetition burden, lift frequency, travel time, and throughput implications under
+different task designs. Research and industry examples show growing interest in digital twin
+approaches for ergonomics and workflow improvement. If you bring this into a practical
+warehouse setting, you move beyond post event assessment into pre event prevention.
+3. Continuous leading indicators, not just observation snapshots
+Right now your system sounds observation-centered. Add a continuous signal layer that
+captures worker discomfort trends, fatigue check ins, micro breaks taken, recovery time,
+overtime burden, task rotation quality, and psychosocial workload signals. This matters
+because current Musculoskeletal disorder prevention discussions are shifting toward leading
+indicators and non-physical drivers, but many organizations still do not measure those
+factors well. A platform that connects physical risk, fatigue, workload, and recovery
+will feel much more advanced than a classic ergonomics tool.
+4. Privacy first computer vision with edge processing
+Many users want AI video, but legal, labor, and trust concerns slow adoption. Build a privacy
+architecture that makes your product safer to deploy than competitors. Examples include
+automatic face blurring, skeletal extraction only, on device preprocessing, configurable
+retention, union safe audit controls, and separate modes for ergonomics only versus broader
+safety review. Vendors already advertise AI video and motion capture. Your advantage could
+be trusted AI governance for regulated environments, especially where worker surveillance
+concerns are high.
+5. Before and after proof of improvement
+Users do not just want a high risk flag. They want proof that an intervention worked. Build a
+closed loop outcome layer that compares task conditions before and after a control is
+implemented. Show posture improvement, exposure reduction, discomfort reduction, time
+savings, and estimated avoided injury cost. Several market players already highlight ROI
+calculators, which means proving financial value is becoming standard. Your product can do
+this more credibly by linking the recommendation, action, verification video, worker
+feedback, and business result in one chain of evidence.
+6. Worker facing coaching and self service ergonomics
+Do not make it only a manager tool. Give workers a simple mobile experience with task
+specific coaching, multilingual (especially, Spanish, Mandarin, Arabic) prompts, pre-shift self-
+checks, discomfort reporting, and personalized workstation or lift tips. Office ergonomics
+vendors already offer self-assessment and guidance, but many industrial systems are still
+manager-centered. A worker experience layer improves engagement and creates more
+real time data.
+7. Wearable sensor bridge for high risk use cases
+You do not need to become a hardware company. But you can support optional integration
+with wearables or inertial sensors for high-risk jobs, return to work cases, and validation
+studies. Recent research continues to support wearable sensing for real time fatigue and
+biomechanical risk monitoring. Even if this starts as a premium add on, it gives you a strong
+innovation story for enterprise and research oriented users.
+8. Operations aware ergonomics
+This is where you can become much more than an EHS tool. Since you already mention
+ERP, WMS, and HRIS integrations, use them deeply. Pull task volume, pick rate, overtime,
+absenteeism, shift pattern, staffing mix, slotting logic, and injury history into the risk model.
+Then show operational root causes such as a specific SKU family, shift, line, or staffing
+pattern driving ergonomic risk. Most ergonomics tools focus on the body. The smarter
+product explains how the work system is creating the body burden. That is much harder to
+copy.
+9. Benchmarking network and maturity scoring
+If you can safely aggregate de-identified data across clients, you can give each customer
+something very valuable. Show how their sites compare on exposure patterns, response
+speed, control completion, discomfort rates, and intervention effectiveness. NSC reporting
+suggests organizations are trying to mature their MSD programs and leading indicator
+practices. A benchmarking layer makes your product more strategic for executives and
+harder to replace.
+10. Ergonomics copilot for auditors, supervisors, and engineers
+The EHS market is clearly moving toward embedded and agentic AI. Instead of a generic
+chatbot, build role specific copilots. A supervisor copilot could summarize top risks for this
+shift. A safety manager copilot could draft a corrective action plan. An engineer copilot could
+suggest redesign options based on lift geometry, reach distance, and cycle time. An auditor
+copilot could explain why a score changed and show the evidence. The winning angle is
+controlled, explainable, workflow embedded AI rather than open ended AI.
+These are the components I am certain would make it novel; I may be able to suggest more,
+if any, when you share the software with me.
+Thanks.

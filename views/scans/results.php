@@ -42,20 +42,6 @@ ob_start();
 
   <div class="alert alert-danger" x-show="error && !loading" x-cloak x-text="error"></div>
 
-  <!-- Video Preview -->
-  <div class="card mb-4" x-show="scan && scan.video_path && !loading" x-cloak>
-    <div class="card-header d-flex align-items-center gap-2">
-      <i class="bi bi-camera-video text-primary"></i>
-      <h6 class="mb-0 fw-semibold">Uploaded Video</h6>
-    </div>
-    <div class="card-body p-0">
-      <video class="w-100 rounded-bottom" style="max-height:400px;background:#000" controls preload="metadata"
-             :src="'/storage/videos/' + scan.video_path.split('/').pop()">
-        Your browser does not support video playback.
-      </video>
-    </div>
-  </div>
-
   <!-- Results -->
   <div x-show="scan && !loading && !scanInvalid" x-cloak>
 
@@ -67,9 +53,9 @@ ob_start();
           <div class="card-body text-center py-4">
             <p class="section-title mb-2">Risk Score</p>
             <div class="display-4 fw-bold mb-2" x-text="score" :style="'color:' + barColor"></div>
-            <span class="badge px-3 py-2 fs-6"
-                  :class="riskLevel === 'high' ? 'badge-soft-danger'
-                        : riskLevel === 'moderate' ? 'badge-soft-warning'
+            <span class="badge px-3 py-2 text-wrap fs-10"
+              :class="riskLevelCategory === 'high' ? 'badge-soft-danger'
+                : riskLevelCategory === 'moderate' ? 'badge-soft-warning'
                         : 'badge-soft-success'"
                   x-text="riskLevel"></span>
             <div class="risk-meter mt-4">
@@ -118,6 +104,163 @@ ob_start();
       </div>
     </div>
 
+    <!-- Ranked Controls -->
+    <div class="card mb-4" x-show="controls && controls.length > 0" x-cloak>
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-list-check text-primary"></i>
+        <h6 class="mb-0 fw-semibold">Prescriptive Controls (Ranked)</h6>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+            <tr>
+              <th>#</th>
+              <th>Control</th>
+              <th>Hierarchy</th>
+              <th>Type</th>
+              <th>Expected Risk Reduction</th>
+              <th>Feasibility</th>
+              <th>Cost</th>
+              <th>Deploy</th>
+              <th>Throughput Impact</th>
+              <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <template x-for="c in controls" :key="c.id || c.rank_order">
+              <tr>
+                <td><span class="badge badge-soft-primary" x-text="c.rank_order"></span></td>
+                <td>
+                  <div class="fw-semibold" x-text="c.title"></div>
+                  <div class="text-muted text-sm" x-text="c.rationale"></div>
+                  <div class="text-xs text-muted mt-1" x-show="c.control_type === 'interim' && c.interim_for_control_code">
+                    Interim while higher-order control is deployed:
+                    <span class="fw-semibold" x-text="c.interim_for_control_code"></span>
+                  </div>
+                  <div class="text-xs text-muted mt-1" x-show="c.evidence && c.evidence.pros && c.evidence.pros.length">
+                    <strong>Pros:</strong> <span x-text="c.evidence.pros.join(', ')"></span>
+                  </div>
+                  <div class="text-xs text-muted" x-show="c.evidence && c.evidence.cons && c.evidence.cons.length">
+                    <strong>Cons:</strong> <span x-text="c.evidence.cons.join(', ')"></span>
+                  </div>
+                </td>
+                <td><span class="badge badge-soft-secondary text-capitalize" x-text="c.hierarchy_level"></span></td>
+                <td>
+                  <span class="badge text-capitalize"
+                        :class="c.control_type === 'interim' ? 'badge-soft-warning' : 'badge-soft-success'"
+                        x-text="c.control_type || 'permanent'"></span>
+                </td>
+                <td x-text="Number(c.expected_risk_reduction_pct).toFixed(1) + '%' "></td>
+                <td>
+                  <span class="badge text-capitalize"
+                        :class="c.feasibility_status === 'feasible' ? 'badge-soft-success' : (c.feasibility_status === 'not_feasible' ? 'badge-soft-danger' : 'badge-soft-warning')"
+                        x-text="(Number(c.feasibility_score || 0).toFixed(1)) + '% ' + (c.feasibility_status || 'conditional')"></span>
+                </td>
+                <td class="text-capitalize" x-text="c.implementation_cost"></td>
+                <td x-text="c.time_to_deploy_days + 'd'"></td>
+                <td class="text-capitalize" x-text="c.throughput_impact"></td>
+                <td>
+                  <template x-if="actionForControl(c.id)">
+                    <span class="badge text-capitalize"
+                          :class="actionForControl(c.id).status === 'verified' ? 'badge-soft-success' : 'badge-soft-secondary'"
+                          x-text="actionForControl(c.id).status"></span>
+                  </template>
+                  <template x-if="!actionForControl(c.id)">
+                    <button class="btn btn-outline-primary btn-sm"
+                            x-show="canManageActions"
+                            @click="createControlAction(c)"
+                            :disabled="actionBusy">
+                      <span x-show="actionBusy" class="spinner-border spinner-border-sm me-1"></span>
+                      Create Action
+                    </button>
+                  </template>
+                </td>
+              </tr>
+            </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4" x-show="controlActions && controlActions.length > 0" x-cloak>
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-link-45deg text-primary"></i>
+          <h6 class="mb-0 fw-semibold">Control Action Evidence Chain</h6>
+        </div>
+        <span class="badge badge-soft-secondary" x-text="controlActions.length + ' actions'"></span>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+            <tr>
+              <th>Control</th>
+              <th>Status</th>
+              <th>Owner</th>
+              <th>Due</th>
+              <th>Verification</th>
+              <th>Workflow</th>
+            </tr>
+            </thead>
+            <tbody>
+            <template x-for="a in controlActions" :key="a.id">
+              <tr>
+                <td>
+                  <div class="fw-semibold" x-text="a.control_title"></div>
+                  <div class="text-muted text-xs" x-text="'Code: ' + a.control_code"></div>
+                </td>
+                <td>
+                  <span class="badge text-capitalize"
+                        :class="a.status === 'verified' ? 'badge-soft-success' : (a.status === 'cancelled' ? 'badge-soft-danger' : 'badge-soft-warning')"
+                        x-text="a.status"></span>
+                </td>
+                <td x-text="a.assigned_to_name || 'Unassigned'"></td>
+                <td x-text="a.target_due_date || '—'"></td>
+                <td>
+                  <template x-if="a.verification_summary && a.verification_summary.improvement_proof">
+                    <div class="text-xs">
+                      <div>
+                        Risk delta:
+                        <strong x-text="(a.verification_summary.improvement_proof.risk_reduction_percent ?? 0) + '%'"></strong>
+                      </div>
+                      <div class="text-muted">
+                        Scan:
+                        <span x-text="a.verification_scan_id || '—'"></span>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="!a.verification_summary || !a.verification_summary.improvement_proof">
+                    <span class="text-muted text-xs">Pending verification</span>
+                  </template>
+                </td>
+                <td>
+                  <div class="d-flex flex-wrap gap-1" x-show="canManageActions">
+                    <button class="btn btn-outline-secondary btn-sm"
+                            x-show="a.status === 'planned'"
+                            @click="updateActionStatus(a.id, 'in_progress')">Start</button>
+                    <button class="btn btn-outline-primary btn-sm"
+                            x-show="a.status === 'in_progress'"
+                            @click="updateActionStatus(a.id, 'implemented')">Implemented</button>
+                    <button class="btn btn-outline-success btn-sm"
+                            x-show="a.status === 'implemented' || a.status === 'in_progress'"
+                            @click="verifyActionPrompt(a.id)">Verify</button>
+                    <button class="btn btn-outline-danger btn-sm"
+                            x-show="a.status !== 'verified' && a.status !== 'cancelled'"
+                            @click="updateActionStatus(a.id, 'cancelled')">Cancel</button>
+                  </div>
+                  <span class="text-muted text-xs" x-show="!canManageActions">View only</span>
+                </td>
+              </tr>
+            </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Measurements -->
     <div class="card" x-show="measurements.length > 0" x-cloak>
       <div class="card-header"><h6 class="mb-0 fw-semibold">Measurements</h6></div>
@@ -135,6 +278,29 @@ ob_start();
       </div>
     </div>
 
+  </div>
+
+    <!-- Video Preview -->
+  <div class="card mb-4" x-show="scan && !loading && poseVideoUrl" x-cloak>
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="bi bi-camera-video text-primary"></i>
+      <h6 class="mb-0 fw-semibold">Pose Detection Video</h6>
+    </div>
+    <div class="card-body p-0">
+      <video class="w-100 rounded-bottom" style="max-height:400px;background:#000" controls preload="metadata"
+             :src="poseVideoUrl">
+        Your browser does not support video playback.
+      </video>
+    </div>
+  </div>
+
+  <div class="alert alert-warning align-items-start gap-2"
+       x-show="scan && !loading && scan.scan_type === 'video' && scan.status === 'completed' && !poseVideoUrl" x-cloak>
+    <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
+    <div>
+      <strong>Pose video unavailable</strong>
+      <p class="mb-0 mt-1">This scan completed without a stored preview video. Check organization video retention settings or retry the scan if a video preview is required.</p>
+    </div>
   </div>
 </div>
 <?php

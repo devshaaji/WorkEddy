@@ -83,6 +83,7 @@ def test_mark_scan_invalid_posts_to_worker_api(monkeypatch: pytest.MonkeyPatch) 
 
 def test_process_scan_job_posts_metrics_for_php_scoring(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
+    detector_kwargs: dict[str, Any] = {}
 
     class _FrameExtractor:
         @staticmethod
@@ -92,6 +93,7 @@ def test_process_scan_job_posts_metrics_for_php_scoring(monkeypatch: pytest.Monk
     class _PoseDetector:
         @staticmethod
         def estimate_pose_metrics(**kwargs):
+            detector_kwargs.update(kwargs)
             return {
                 "max_trunk_angle": 20.0,
                 "neck_angle": 8.0,
@@ -101,10 +103,12 @@ def test_process_scan_job_posts_metrics_for_php_scoring(monkeypatch: pytest.Monk
                 "shoulder_elevation_duration": 0.15,
                 "repetition_count": 12,
                 "processing_confidence": 0.88,
+                "pose_video_path": "/storage/uploads/videos/sample.pose.mp4",
             }
 
     monkeypatch.setattr(video_worker, "_frame_extractor_module", lambda: _FrameExtractor())
     monkeypatch.setattr(video_worker, "_pose_detector_module", lambda: _PoseDetector())
+    monkeypatch.setenv("VIDEO_MULTI_PERSON_POLICY", "reject")
 
     def fake_post(endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
         captured["endpoint"] = endpoint
@@ -127,6 +131,8 @@ def test_process_scan_job_posts_metrics_for_php_scoring(monkeypatch: pytest.Monk
     assert captured["payload"]["organization_id"] == 3
     assert captured["payload"]["model"] == "reba"
     assert captured["payload"]["metrics"]["trunk_angle"] == 20.0
+    assert captured["payload"]["pose_video_path"] == "/storage/uploads/videos/sample.pose.mp4"
+    assert detector_kwargs["multi_person_policy"] == "reject"
 
 
 def test_process_scan_job_rejects_niosh_video() -> None:

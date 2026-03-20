@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Comparator;
 use WorkEddy\Core\Migrations\MigrationInterface;
 
 return new class implements MigrationInterface {
@@ -43,7 +42,8 @@ return new class implements MigrationInterface {
             $targetTable->dropColumn('settings');
         }
 
-        $tableDiff = (new Comparator())->compareTables($currentTable, $targetTable);
+        $comparator = $schemaManager->createComparator();
+        $tableDiff = $comparator->compareTables($currentTable, $targetTable);
         foreach ($db->getDatabasePlatform()->getAlterTableSQL($tableDiff) as $statement) {
             $db->executeStatement($statement);
         }

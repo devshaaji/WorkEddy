@@ -9,10 +9,10 @@ ob_start();
   $headerTitle = 'Dashboard';
   $headerBreadcrumb = 'Home / Dashboard';
   $headerActionsHtml = '
-      <a href="/scans/new-video" class="btn btn-outline-primary">
+      <a href="/scans/new-video" class="btn btn-outline-primary" x-show="$store.auth.role === \"admin\" || $store.auth.role === \"supervisor\" || $store.auth.role === \"worker\"" x-cloak>
         <i class="bi bi-camera-video me-1"></i>Video Scan
       </a>
-      <a href="/scans/new-manual" class="btn btn-primary">
+      <a href="/scans/new-manual" class="btn btn-primary" x-show="$store.auth.role === \"admin\" || $store.auth.role === \"supervisor\" || $store.auth.role === \"worker\"" x-cloak>
         <i class="bi bi-plus-lg me-1"></i>New Scan
       </a>';
   require __DIR__ . '/../partials/page-header.php';
@@ -25,7 +25,7 @@ ob_start();
         <div class="stat-icon stat-icon-primary"><i class="bi bi-activity"></i></div>
         <div>
           <div class="stat-value" x-text="totalScans">—</div>
-          <div class="stat-label">Total Scans</div>
+          <div class="stat-label" x-text="kpiLabels.total_scans ?? 'Total Scans'">Total Scans</div>
         </div>
       </div>
     </div>
@@ -34,7 +34,7 @@ ob_start();
         <div class="stat-icon stat-icon-danger"><i class="bi bi-exclamation-triangle"></i></div>
         <div>
           <div class="stat-value" x-text="highRisk">—</div>
-          <div class="stat-label">High Risk</div>
+          <div class="stat-label" x-text="kpiLabels.high_risk ?? 'High Risk'">High Risk</div>
         </div>
       </div>
     </div>
@@ -43,7 +43,7 @@ ob_start();
         <div class="stat-icon stat-icon-warning"><i class="bi bi-exclamation-circle"></i></div>
         <div>
           <div class="stat-value" x-text="moderateRisk">—</div>
-          <div class="stat-label">Moderate Risk</div>
+          <div class="stat-label" x-text="kpiLabels.moderate_risk ?? 'Moderate Risk'">Moderate Risk</div>
         </div>
       </div>
     </div>
@@ -52,7 +52,7 @@ ob_start();
         <div class="stat-icon stat-icon-info"><i class="bi bi-bar-chart-line"></i></div>
         <div>
           <div class="stat-value" x-text="avgScore">—</div>
-          <div class="stat-label">Avg Risk Score</div>
+          <div class="stat-label" x-text="kpiLabels.avg_score ?? 'Avg Risk Score'">Avg Risk Score</div>
         </div>
       </div>
     </div>
@@ -113,7 +113,7 @@ ob_start();
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h6 class="mb-0 fw-semibold">Recent Scans</h6>
-          <a href="/scans/new-manual" class="btn btn-sm btn-primary">
+          <a href="/scans/new-manual" class="btn btn-sm btn-primary" x-show="$store.auth.role === 'admin' || $store.auth.role === 'supervisor' || $store.auth.role === 'worker'" x-cloak>
             <i class="bi bi-plus-lg me-1"></i>New
           </a>
         </div>
@@ -173,7 +173,7 @@ ob_start();
                           </a>
                         </li>
                         <li>
-                          <a class="dropdown-item" :href="'/observer-rating?scan_id=' + s.id">
+                          <a class="dropdown-item" :href="'/observer-rating?scan_id=' + s.id" x-show="$store.auth.role === 'admin' || $store.auth.role === 'observer'" x-cloak>
                             <i class="bi bi-person-check me-2 text-muted"></i>Observer Rating
                           </a>
                         </li>
@@ -205,14 +205,17 @@ ob_start();
       <div class="card mb-4">
         <div class="card-header"><h6 class="mb-0 fw-semibold">Quick Actions</h6></div>
         <div class="card-body d-grid gap-2">
-          <a href="/scans/new-manual" class="btn btn-outline-primary text-start">
+          <a href="/scans/new-manual" class="btn btn-outline-primary text-start" x-show="$store.auth.role === 'admin' || $store.auth.role === 'supervisor' || $store.auth.role === 'worker'" x-cloak>
             <i class="bi bi-upc-scan me-2"></i>Manual Scan
           </a>
-          <a href="/scans/new-video" class="btn btn-outline-primary text-start">
+          <a href="/scans/new-video" class="btn btn-outline-primary text-start" x-show="$store.auth.role === 'admin' || $store.auth.role === 'supervisor' || $store.auth.role === 'worker'" x-cloak>
             <i class="bi bi-camera-video me-2"></i>Video Scan
           </a>
           <a href="/tasks" class="btn btn-outline-secondary text-start">
             <i class="bi bi-list-task me-2"></i>Manage Tasks
+          </a>
+          <a href="/observer-rating" class="btn btn-outline-secondary text-start" x-show="$store.auth.role === 'admin' || $store.auth.role === 'observer'" x-cloak>
+            <i class="bi bi-person-check me-2"></i>Rate Scans
           </a>
           <a href="/org/users" class="btn btn-outline-secondary text-start">
             <i class="bi bi-people me-2"></i>Team Members
@@ -220,7 +223,7 @@ ob_start();
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" x-show="dashboardMode !== 'observer'" x-cloak>
         <div class="card-header"><h6 class="mb-0 fw-semibold">Tasks by Risk</h6></div>
 
         <div class="text-center py-4" x-show="loading" x-cloak>
@@ -249,6 +252,63 @@ ob_start();
             </li>
           </template>
         </ul>
+      </div>
+
+      <div class="card mt-4" x-show="dashboardMode === 'observer'" x-cloak>
+        <div class="card-header"><h6 class="mb-0 fw-semibold">Recent Ratings</h6></div>
+
+        <div class="text-center py-4" x-show="loading" x-cloak>
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+        </div>
+
+        <div class="empty-state py-4" x-show="!loading && recentRatings.length === 0" x-cloak>
+          <div class="empty-state-icon" style="width:48px;height:48px;font-size:1.25rem;">
+            <i class="bi bi-clipboard-check"></i>
+          </div>
+          <p class="mb-0">No ratings submitted yet.</p>
+        </div>
+
+        <ul class="list-group list-group-flush" x-show="!loading && recentRatings.length > 0" x-cloak>
+          <template x-for="r in recentRatings" :key="r.id">
+            <li class="list-group-item px-4 py-3">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                  <p class="fw-medium mb-1" x-text="r.task_name ?? ('Scan #' + r.scan_id)"></p>
+                  <p class="text-muted text-xs mb-0" x-text="fmtDate(r.created_at)"></p>
+                </div>
+                <span class="badge badge-soft-primary text-uppercase" x-text="r.observer_category"></span>
+              </div>
+              <p class="mb-0 mt-2 text-sm">Score: <strong x-text="fmtScore(r.observer_score)"></strong></p>
+            </li>
+          </template>
+        </ul>
+      </div>
+
+      <div class="card mt-4" x-show="dashboardMode !== 'observer'" x-cloak>
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0 fw-semibold">Leading Indicators (30d)</h6>
+          <a href="/org/settings" class="text-decoration-none text-sm">Settings</a>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <p class="text-muted text-xs text-uppercase mb-1">Check-ins</p>
+              <p class="h5 mb-0" x-text="leadingIndicators.total_checkins_30d ?? 0"></p>
+            </div>
+            <div class="col-6">
+              <p class="text-muted text-xs text-uppercase mb-1">Avg Discomfort</p>
+              <p class="h5 mb-0" x-text="leadingIndicators.avg_discomfort_30d != null ? Number(leadingIndicators.avg_discomfort_30d).toFixed(2) : '—'"></p>
+            </div>
+            <div class="col-6">
+              <p class="text-muted text-xs text-uppercase mb-1">Avg Fatigue</p>
+              <p class="h5 mb-0" x-text="leadingIndicators.avg_fatigue_30d != null ? Number(leadingIndicators.avg_fatigue_30d).toFixed(2) : '—'"></p>
+            </div>
+            <div class="col-6">
+              <p class="text-muted text-xs text-uppercase mb-1">High Psychosocial</p>
+              <p class="h5 mb-0" x-text="leadingIndicators.high_psychosocial_count_30d ?? 0"></p>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>

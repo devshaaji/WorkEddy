@@ -10,7 +10,10 @@ use WorkEddy\Contracts\QueueInterface;
 use WorkEddy\Controllers\AdminController;
 use WorkEddy\Controllers\AuthController;
 use WorkEddy\Controllers\BillingController;
+use WorkEddy\Controllers\CopilotController;
+use WorkEddy\Controllers\ControlActionController;
 use WorkEddy\Controllers\DashboardController;
+use WorkEddy\Controllers\LeadingIndicatorController;
 use WorkEddy\Controllers\NotificationController;
 use WorkEddy\Controllers\ObserverController;
 use WorkEddy\Controllers\OrgController;
@@ -19,11 +22,19 @@ use WorkEddy\Controllers\ScanController;
 use WorkEddy\Controllers\TaskController;
 use WorkEddy\Controllers\WorkspaceController;
 use WorkEddy\Controllers\WorkerController;
+use WorkEddy\Controllers\WorkerCoachingController;
+use WorkEddy\Controllers\LiveSessionController;
+use WorkEddy\Controllers\LiveWorkerController;
 use WorkEddy\Middleware\AuthMiddleware;
 use WorkEddy\Middleware\RateLimitMiddleware;
 use WorkEddy\Repositories\AdminRepository;
 use WorkEddy\Repositories\BillingRepository;
+use WorkEddy\Repositories\CopilotAuditRepository;
+use WorkEddy\Repositories\ControlRecommendationRepository;
+use WorkEddy\Repositories\ControlActionRepository;
+use WorkEddy\Repositories\LeadingIndicatorRepository;
 use WorkEddy\Repositories\NotificationRepository;
+use WorkEddy\Repositories\LiveSessionRepository;
 use WorkEddy\Repositories\ScanRepository;
 use WorkEddy\Repositories\TaskRepository;
 use WorkEddy\Repositories\UserRepository;
@@ -32,6 +43,13 @@ use WorkEddy\Services\AdminService;
 use WorkEddy\Services\AuthService;
 use WorkEddy\Services\BillingPeriodService;
 use WorkEddy\Services\BillingService;
+use WorkEddy\Services\CopilotAuditService;
+use WorkEddy\Services\CopilotDeterministicService;
+use WorkEddy\Services\CopilotNarrativeService;
+use WorkEddy\Services\CopilotRedactionService;
+use WorkEddy\Services\ControlRecommendationService;
+use WorkEddy\Services\ErgonomicsCopilotService;
+use WorkEddy\Services\ControlActionService;
 use WorkEddy\Services\Cache\ArrayCacheDriver;
 use WorkEddy\Services\Cache\FileCacheDriver;
 use WorkEddy\Services\Cache\RedisCacheDriver;
@@ -39,6 +57,8 @@ use WorkEddy\Services\DashboardService;
 use WorkEddy\Services\EmailService;
 use WorkEddy\Services\Ergonomics\AssessmentEngine;
 use WorkEddy\Services\JwtService;
+use WorkEddy\Services\LeadingIndicatorService;
+use WorkEddy\Services\ImprovementProofService;
 use WorkEddy\Services\NotificationService;
 use WorkEddy\Services\ObserverService;
 use WorkEddy\Services\OrgService;
@@ -46,11 +66,13 @@ use WorkEddy\Services\Payments\PaymentGatewayService;
 use WorkEddy\Services\Queue\DatabaseQueueDriver;
 use WorkEddy\Services\Queue\RedisQueueDriver;
 use WorkEddy\Services\ScanComparisonService;
+use WorkEddy\Services\LiveSessionService;
 use WorkEddy\Services\ScanService;
 use WorkEddy\Services\TaskService;
 use WorkEddy\Services\UsageMeterService;
 use WorkEddy\Services\UserService;
 use WorkEddy\Services\VideoProcessingService;
+use WorkEddy\Services\WorkerCoachingService;
 
 /**
  * Lightweight lazy-singleton service container.
@@ -112,6 +134,31 @@ final class Container
         return $this->make('notificationRepo', fn () => new NotificationRepository($this->db()));
     }
 
+    public function leadingIndicatorRepo(): LeadingIndicatorRepository
+    {
+        return $this->make('leadingIndicatorRepo', fn () => new LeadingIndicatorRepository($this->db()));
+    }
+
+    public function controlRecommendationRepo(): ControlRecommendationRepository
+    {
+        return $this->make('controlRecommendationRepo', fn () => new ControlRecommendationRepository($this->db()));
+    }
+
+    public function controlActionRepo(): ControlActionRepository
+    {
+        return $this->make('controlActionRepo', fn () => new ControlActionRepository($this->db()));
+    }
+
+    public function copilotAuditRepo(): CopilotAuditRepository
+    {
+        return $this->make('copilotAuditRepo', fn () => new CopilotAuditRepository($this->db()));
+    }
+
+    public function liveSessionRepo(): LiveSessionRepository
+    {
+        return $this->make('liveSessionRepo', fn () => new LiveSessionRepository($this->db()));
+    }
+
     // ─── Services ─────────────────────────────────────────────────────
 
     public function jwt(): JwtService
@@ -157,6 +204,9 @@ final class Container
         return $this->make('usageMeter', fn () => new UsageMeterService(
             $this->workspaceRepo(),
             $this->billingPeriods(),
+            $this->liveSessionRepo(),
+            $this->copilotAuditRepo(),
+            $this->userRepo(),
         ));
     }
 
@@ -170,9 +220,33 @@ final class Container
         return $this->make('videoService', fn () => new VideoProcessingService());
     }
 
+    public function controlRecommendationEngine(): ControlRecommendationService
+    {
+        return $this->make('controlRecommendationEngine', fn () => new ControlRecommendationService());
+    }
+
+    public function improvementProofService(): ImprovementProofService
+    {
+        return $this->make('improvementProofService', fn () => new ImprovementProofService());
+    }
+
     public function emailService(): EmailService
     {
         return $this->make('emailService', fn () => new EmailService());
+    }
+
+    public function leadingIndicatorService(): LeadingIndicatorService
+    {
+        return $this->make('leadingIndicatorService', fn () => new LeadingIndicatorService($this->leadingIndicatorRepo()));
+    }
+
+    public function workerCoachingService(): WorkerCoachingService
+    {
+        return $this->make('workerCoachingService', fn () => new WorkerCoachingService(
+            $this->leadingIndicatorRepo(),
+            $this->scanRepo(),
+            $this->controlActionRepo(),
+        ));
     }
 
     public function authService(): AuthService
@@ -203,8 +277,13 @@ final class Container
             $this->assessmentEngine(),
             $this->usageMeter(),
             $this->queue(),
+            $this->improvementProofService(),
             $this->cache(),
             (int) ((require __DIR__ . '/../config/cache.php')['ttl'] ?? 300),
+            $this->workspaceRepo(),
+            $this->controlRecommendationRepo(),
+            $this->controlRecommendationEngine(),
+            $this->videoService(),
         ));
     }
 
@@ -213,12 +292,62 @@ final class Container
         return $this->make('scanComparisonService', fn () => new ScanComparisonService(
             $this->scanRepo(),
             $this->assessmentEngine(),
+            $this->improvementProofService(),
+        ));
+    }
+
+    public function controlActionService(): ControlActionService
+    {
+        return $this->make('controlActionService', fn () => new ControlActionService(
+            $this->controlActionRepo(),
+            $this->scanRepo(),
+            $this->userRepo(),
+            $this->improvementProofService(),
+            $this->scanComparisonService(),
         ));
     }
 
     public function dashboardService(): DashboardService
     {
         return $this->make('dashboardService', fn () => new DashboardService($this->db()));
+    }
+
+    public function copilotDeterministicService(): CopilotDeterministicService
+    {
+        return $this->make('copilotDeterministicService', fn () => new CopilotDeterministicService(
+            $this->db(),
+            $this->scanRepo(),
+            $this->controlActionRepo(),
+            $this->scanComparisonService(),
+        ));
+    }
+
+    public function copilotNarrativeService(): CopilotNarrativeService
+    {
+        return $this->make('copilotNarrativeService', fn () => new CopilotNarrativeService());
+    }
+
+    public function copilotRedactionService(): CopilotRedactionService
+    {
+        return $this->make('copilotRedactionService', fn () => new CopilotRedactionService());
+    }
+
+    public function copilotAuditService(): CopilotAuditService
+    {
+        return $this->make('copilotAuditService', fn () => new CopilotAuditService(
+            $this->copilotAuditRepo(),
+            $this->copilotRedactionService(),
+        ));
+    }
+
+    public function ergonomicsCopilotService(): ErgonomicsCopilotService
+    {
+        return $this->make('ergonomicsCopilotService', fn () => new ErgonomicsCopilotService(
+            $this->copilotDeterministicService(),
+            $this->copilotNarrativeService(),
+            $this->copilotAuditService(),
+            $this->usageMeter(),
+        ));
     }
 
     public function observerService(): ObserverService
@@ -240,6 +369,19 @@ final class Container
     public function notificationService(): NotificationService
     {
         return $this->make('notificationService', fn () => new NotificationService($this->notificationRepo()));
+    }
+
+    public function liveSessionService(): LiveSessionService
+    {
+        return $this->make('liveSessionService', fn () => new LiveSessionService(
+            $this->liveSessionRepo(),
+            $this->taskRepo(),
+            $this->workspaceRepo(),
+            $this->queue(),
+            (array) (require __DIR__ . '/../config/live.php'),
+            $this->usageMeter(),
+            $this->cache(),
+        ));
     }
 
     public function adminService(): AdminService
@@ -342,6 +484,39 @@ final class Container
     public function profileCtrl(): ProfileController
     {
         return $this->make('profileCtrl', fn () => new ProfileController($this->userService()));
+    }
+
+    public function leadingIndicatorCtrl(): LeadingIndicatorController
+    {
+        return $this->make('leadingIndicatorCtrl', fn () => new LeadingIndicatorController($this->leadingIndicatorService()));
+    }
+
+    public function workerCoachingCtrl(): WorkerCoachingController
+    {
+        return $this->make('workerCoachingCtrl', fn () => new WorkerCoachingController($this->workerCoachingService()));
+    }
+
+    public function copilotCtrl(): CopilotController
+    {
+        return $this->make('copilotCtrl', fn () => new CopilotController($this->ergonomicsCopilotService()));
+    }
+
+    public function controlActionCtrl(): ControlActionController
+    {
+        return $this->make('controlActionCtrl', fn () => new ControlActionController($this->controlActionService()));
+    }
+
+    public function liveSessionCtrl(): LiveSessionController
+    {
+        return $this->make('liveSessionCtrl', fn () => new LiveSessionController($this->liveSessionService()));
+    }
+
+    public function liveWorkerCtrl(): LiveWorkerController
+    {
+        return $this->make('liveWorkerCtrl', fn () => new LiveWorkerController(
+            $this->liveSessionService(),
+            $this->queue(),
+        ));
     }
 
     // ─── Internal ─────────────────────────────────────────────────────

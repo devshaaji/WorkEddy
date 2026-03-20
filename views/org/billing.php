@@ -143,6 +143,74 @@ ob_start();
 
     </div><!-- /row -->
 
+    <div class="alert alert-warning d-flex align-items-start gap-2 mb-4"
+         x-show="violationsSummary()" x-cloak>
+      <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+      <div>
+        <div class="fw-semibold">Plan guardrails need attention</div>
+        <div class="small text-muted" x-text="violationsSummary()"></div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <div>
+          <h6 class="card-title mb-0">Operational Watchlist</h6>
+          <p class="text-muted text-sm mb-0">This is the billing surface we now track across workers, copilot usage, retention, and organization capacity.</p>
+        </div>
+        <span class="badge badge-soft-secondary" x-text="usagePeriodLabel()"></span>
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          <template x-for="item in usageWatchItems()" :key="item.key">
+            <div class="list-group-item py-3">
+              <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                  <div class="fw-semibold" x-text="item.label"></div>
+                  <div class="text-muted text-sm" x-text="item.help"></div>
+                </div>
+                <span class="badge" :class="item.badgeClass" x-text="item.status"></span>
+              </div>
+
+              <div class="row g-3 mt-1 text-sm">
+                <div class="col-sm-3">
+                  <div class="text-muted text-xs mb-1">Used</div>
+                  <div class="fw-semibold" x-text="item.used"></div>
+                </div>
+                <div class="col-sm-3">
+                  <div class="text-muted text-xs mb-1">Reserved</div>
+                  <div class="fw-semibold" x-text="item.reserved"></div>
+                </div>
+                <div class="col-sm-3">
+                  <div class="text-muted text-xs mb-1">Limit</div>
+                  <div class="fw-semibold" x-text="item.limit"></div>
+                </div>
+                <div class="col-sm-3">
+                  <div class="text-muted text-xs mb-1">Remaining</div>
+                  <div class="fw-semibold" x-text="item.remaining"></div>
+                </div>
+              </div>
+
+              <div class="mt-3" x-show="item.showProgress">
+                <div class="progress" style="height:8px;">
+                  <div class="progress-bar"
+                       :class="item.progressClass"
+                       :style="'width:' + item.percent + '%'"
+                       role="progressbar"
+                       :aria-valuenow="item.percent"
+                       aria-valuemin="0"
+                       aria-valuemax="100"></div>
+                </div>
+                <div class="d-flex justify-content-end mt-1">
+                  <span class="text-muted text-xs" x-text="item.percent + '% consumed'"></span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
     <!-- Available Plans -->
     <h6 class="fw-semibold mb-3 text-muted">Available Plans</h6>
 
@@ -181,19 +249,12 @@ ob_start();
                   <i class="bi bi-check2 text-success me-2"></i>
                   <span x-text="plan.scan_limit ? plan.scan_limit + ' scans/period' : 'Unlimited scans'"></span>
                 </li>
-                <li class="mb-1" x-show="plan.features?.members">
-                  <i class="bi bi-check2 text-success me-2"></i>
-                  <span x-text="plan.features.members + ' team members'"></span>
-                </li>
-                <li class="mb-1" x-show="plan.features?.video_processing">
-                  <i class="bi bi-check2 text-success me-2"></i>Video processing
-                </li>
-                <li class="mb-1" x-show="plan.features?.reports">
-                  <i class="bi bi-check2 text-success me-2"></i>PDF reports
-                </li>
-                <li class="mb-1" x-show="plan.features?.api_access">
-                  <i class="bi bi-check2 text-success me-2"></i>API access
-                </li>
+                <template x-for="item in planHighlights(plan)" :key="item">
+                  <li class="mb-1">
+                    <i class="bi bi-check2 text-success me-2"></i>
+                    <span x-text="item"></span>
+                  </li>
+                </template>
               </ul>
 
               <button class="btn w-100"

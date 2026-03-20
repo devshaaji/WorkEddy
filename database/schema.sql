@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS plans (
     scan_limit    INT            NULL,
     price         DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
     billing_cycle VARCHAR(50)    NOT NULL DEFAULT 'monthly',
+    billing_limits_json JSON     NULL,
     status        ENUM('active','archived') NOT NULL DEFAULT 'active'
 );
 
@@ -125,6 +126,89 @@ CREATE TABLE IF NOT EXISTS scan_results (
     CONSTRAINT fk_results_scan FOREIGN KEY (scan_id) REFERENCES scans(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS scan_control_recommendations (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    scan_id BIGINT UNSIGNED NOT NULL,
+    rank_order TINYINT UNSIGNED NOT NULL,
+    hierarchy_level ENUM('elimination','substitution','engineering','administrative','ppe') NOT NULL,
+    control_code VARCHAR(120) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    expected_risk_reduction_pct DECIMAL(5,2) NOT NULL,
+    implementation_cost ENUM('low','medium','high') NOT NULL,
+    time_to_deploy_days INT UNSIGNED NOT NULL,
+    throughput_impact ENUM('low','medium','high') NOT NULL,
+    control_type ENUM('permanent','interim') NOT NULL DEFAULT 'permanent',
+    feasibility_score DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    feasibility_status ENUM('feasible','conditional','not_feasible') NOT NULL DEFAULT 'conditional',
+    interim_for_control_code VARCHAR(120) NULL,
+    rationale TEXT NOT NULL,
+    evidence_json JSON NULL,
+    recommendation_engine_version VARCHAR(64) NOT NULL DEFAULT 'ctrl_rec_v1',
+    created_at DATETIME NOT NULL,
+    CONSTRAINT fk_ctrl_scan FOREIGN KEY (scan_id) REFERENCES scans(id) ON DELETE CASCADE,
+    UNIQUE KEY uniq_ctrl_scan_rank (scan_id, rank_order),
+    UNIQUE KEY uniq_ctrl_scan_code (scan_id, control_code),
+    INDEX idx_ctrl_scan (scan_id),
+    INDEX idx_ctrl_hierarchy (hierarchy_level),
+    INDEX idx_ctrl_feasibility (feasibility_status)
+);
+
+CREATE TABLE IF NOT EXISTS control_actions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    organization_id BIGINT UNSIGNED NOT NULL,
+    source_scan_id BIGINT UNSIGNED NOT NULL,
+    source_control_id BIGINT UNSIGNED NULL,
+    control_code VARCHAR(120) NOT NULL,
+    control_title VARCHAR(255) NOT NULL,
+    hierarchy_level ENUM('elimination','substitution','engineering','administrative','ppe') NOT NULL,
+    control_type ENUM('permanent','interim') NOT NULL DEFAULT 'permanent',
+    assigned_to_user_id BIGINT UNSIGNED NULL,
+    created_by_user_id BIGINT UNSIGNED NOT NULL,
+    status ENUM('planned','in_progress','implemented','verified','cancelled') NOT NULL DEFAULT 'planned',
+    priority ENUM('low','medium','high') NOT NULL DEFAULT 'medium',
+    target_due_date DATE NULL,
+    implementation_notes TEXT NULL,
+    worker_feedback_json JSON NULL,
+    verification_scan_id BIGINT UNSIGNED NULL,
+    verification_summary_json JSON NULL,
+    implemented_at DATETIME NULL,
+    verified_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
+    CONSTRAINT fk_action_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_action_scan FOREIGN KEY (source_scan_id) REFERENCES scans(id) ON DELETE CASCADE,
+    CONSTRAINT fk_action_control FOREIGN KEY (source_control_id) REFERENCES scan_control_recommendations(id) ON DELETE SET NULL,
+    CONSTRAINT fk_action_assignee FOREIGN KEY (assigned_to_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_action_creator FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_action_verification_scan FOREIGN KEY (verification_scan_id) REFERENCES scans(id) ON DELETE SET NULL,
+    INDEX idx_action_org_status (organization_id, status, created_at),
+    INDEX idx_action_org_scan (organization_id, source_scan_id),
+    INDEX idx_action_assignee (assigned_to_user_id, status)
+);
+
+CREATE TABLE IF NOT EXISTS copilot_audit_logs (
+    id CHAR(36) PRIMARY KEY,
+    organization_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    persona VARCHAR(50) NOT NULL,
+    request_payload_redacted JSON NULL,
+    deterministic_bundle_redacted JSON NULL,
+    llm_prompt_redacted JSON NULL,
+    llm_response_redacted JSON NULL,
+    response_payload_redacted JSON NULL,
+    llm_status ENUM('success','fallback','disabled') NOT NULL,
+    llm_request_count INT UNSIGNED NOT NULL DEFAULT 0,
+    llm_prompt_tokens INT UNSIGNED NULL,
+    llm_completion_tokens INT UNSIGNED NULL,
+    llm_total_tokens INT UNSIGNED NULL,
+    created_at DATETIME NOT NULL,
+    CONSTRAINT fk_copilot_audit_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_copilot_audit_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_copilot_audit_org_created (organization_id, created_at),
+    INDEX idx_copilot_audit_user_created (user_id, created_at),
+    INDEX idx_copilot_audit_persona_created (persona, created_at)
+);
+
 -- Legacy tables kept for backwards compatibility with existing data.
 -- New scans use scan_metrics + scan_results instead.
 
@@ -188,12 +272,80 @@ CREATE TABLE IF NOT EXISTS usage_reservations (
     INDEX idx_usage_res_created (created_at)
 );
 
+CREATE TABLE IF NOT EXISTS worker_leading_indicators (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    organization_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    task_id BIGINT UNSIGNED NULL,
+    checkin_type ENUM('pre_shift','mid_shift','post_shift') NOT NULL DEFAULT 'post_shift',
+    shift_date DATE NOT NULL,
+    discomfort_level TINYINT UNSIGNED NOT NULL,
+    fatigue_level TINYINT UNSIGNED NOT NULL,
+    micro_breaks_taken SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    recovery_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    overtime_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    task_rotation_quality ENUM('poor','fair','good') NOT NULL DEFAULT 'fair',
+    psychosocial_load ENUM('low','moderate','high') NOT NULL DEFAULT 'moderate',
+    notes TEXT NULL,
+    created_at DATETIME NOT NULL,
+    CONSTRAINT fk_wli_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_wli_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_wli_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL,
+    INDEX idx_wli_org_shift (organization_id, shift_date),
+    INDEX idx_wli_org_created (organization_id, created_at)
+);
+
 CREATE TABLE IF NOT EXISTS queue_jobs (
     id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     queue_name  VARCHAR(100)    NOT NULL,
     payload     JSON            NOT NULL,
     created_at  DATETIME        NOT NULL,
     INDEX idx_queue_jobs_queue_id (queue_name, id)
+);
+
+CREATE TABLE IF NOT EXISTS live_sessions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    organization_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    task_id BIGINT UNSIGNED NOT NULL,
+    model ENUM('rula','reba') NOT NULL DEFAULT 'reba',
+    pose_engine ENUM('mediapipe','yolo26') NOT NULL DEFAULT 'yolo26',
+    status ENUM('active','paused','completed','failed') NOT NULL DEFAULT 'active',
+    target_fps DECIMAL(5,2) NOT NULL DEFAULT 5.00,
+    batch_window_ms INT UNSIGNED NOT NULL DEFAULT 500,
+    max_e2e_latency_ms INT UNSIGNED NOT NULL DEFAULT 2000,
+    frame_count INT UNSIGNED NOT NULL DEFAULT 0,
+    analysed_frame_count INT UNSIGNED NOT NULL DEFAULT 0,
+    avg_latency_ms DECIMAL(10,2) NULL,
+    summary_metrics_json JSON NULL,
+    telemetry_json JSON NULL,
+    error_message TEXT NULL,
+    started_at DATETIME NOT NULL,
+    completed_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
+    CONSTRAINT fk_live_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_live_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_live_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    INDEX idx_live_org_status (organization_id, status),
+    INDEX idx_live_org_created (organization_id, created_at)
+);
+
+CREATE TABLE IF NOT EXISTS live_session_frames (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    session_id BIGINT UNSIGNED NOT NULL,
+    frame_number INT UNSIGNED NOT NULL,
+    metrics_json JSON NOT NULL,
+    trunk_angle DECIMAL(10,2) NULL,
+    neck_angle DECIMAL(10,2) NULL,
+    upper_arm_angle DECIMAL(10,2) NULL,
+    lower_arm_angle DECIMAL(10,2) NULL,
+    wrist_angle DECIMAL(10,2) NULL,
+    confidence DECIMAL(5,4) NULL,
+    latency_ms DECIMAL(10,2) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    CONSTRAINT fk_lsf_session FOREIGN KEY (session_id) REFERENCES live_sessions(id) ON DELETE CASCADE,
+    INDEX idx_lsf_session_frame (session_id, frame_number)
 );
 
 CREATE TABLE IF NOT EXISTS notifications (
