@@ -341,7 +341,7 @@
       <div class="row g-4">
         <div class="col-lg-4">
           <h4 class="fw-bold mb-3"><img src="/assets/img/logo.png" alt="WorkEddy logo" class="auth-brand-logo" /> WorkEddy</h4>
-          <p class="text-white-50 pe-lg-5">Automating ergonomic risk assessments to protect your workforce and streamline compliance.</p>
+          <p class="text-white-50 pe-lg-5">Automating ergonomic risk assessments to support MSD prevention, improve assessment consistency, and document prevention actions.</p>
         </div>
         <div class="col-6 col-lg-2 offset-lg-2">
           <h6 class="fw-bold text-uppercase mb-3">Product</h6>

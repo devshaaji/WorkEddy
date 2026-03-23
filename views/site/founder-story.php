@@ -110,9 +110,9 @@
       <div class="row justify-content-center mb-5">
         <div class="col-lg-8 col-xl-7">
           <div class="founder-card d-flex flex-column flex-sm-row align-items-center text-center text-sm-start gap-4 mx-auto">
-             <img src="/assets/img/Founder's Why we built WorkEddy Phote.png" alt="Treasure Nkemdilim James" class="rounded-circle shadow-sm border" style="width: 140px; height: 140px; object-fit: cover;">
+             <img src="/assets/img/founder.jpeg" alt="Treasure Nkemdilim James" class="rounded-circle shadow-sm border" style="width: 140px; height: 140px; object-fit: cover;">
              <div>
-                <h4 class="fw-bold mb-1 text-dark" style="font-family:'Outfit',sans-serif;">Treasure Nkemdilim James</h4>
+                <h4 class="fw-bold fs-6 mb-1 text-dark" style="font-family:'Outfit',sans-serif;">Treasure Nkemdilim James</h4>
                 <p class="small text-muted mb-2">MS, MSISD, MOSH, PCQI</p>
                 <p class="fw-bold text-primary mb-3">Founder and Product Lead</p>
                 <div class="d-inline-flex bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-3 px-3 py-2">
@@ -161,7 +161,7 @@
       <div class="row g-4">
         <div class="col-lg-4">
           <h4 class="fw-bold mb-3"><img src="/assets/img/logo.png" alt="WorkEddy logo" class="auth-brand-logo" /> WorkEddy</h4>
-          <p class="text-white-50 pe-lg-5">Automating ergonomic risk assessments to protect your workforce and streamline compliance.</p>
+          <p class="text-white-50 pe-lg-5">Automating ergonomic risk assessments to support MSD prevention, improve assessment consistency, and document prevention actions.</p>
         </div>
         <div class="col-6 col-lg-2 offset-lg-2">
           <h6 class="fw-bold text-uppercase mb-3">Product</h6>

@@ -568,7 +568,7 @@
           
           <div class="row align-items-center">
              <div class="col-md-5 col-lg-4 mb-4 mb-md-0 d-flex flex-column align-items-center text-center text-md-start align-items-md-start">
-                <img src="/assets/img/Founder's Why we built WorkEddy Phote.png" alt="Treasure Nkemdilim James" class="img-fluid rounded-circle mb-3 shadow-sm border" style="width: 180px; height: 180px; object-fit: cover;">
+                <img src="/assets/img/founder.jpeg" alt="Treasure Nkemdilim James" class="img-fluid rounded-circle mb-3 shadow-sm border" style="width: 180px; height: 180px; object-fit: cover;">
                 <h5 class="fw-bold mb-1 text-dark" style="font-family:'Outfit',sans-serif;">Treasure Nkemdilim James</h5>
                 <p class="small text-muted mb-0">MS, MSISD, MOSH, PCQI</p>
                 <p class="small fw-bold text-primary mb-3">Founder and Product Lead</p>
@@ -665,7 +665,7 @@
       <div class="d-flex flex-wrap justify-content-center gap-4 mt-5 text-muted small fw-bold">
          <span class="d-flex align-items-center"><i class="bi bi-credit-card-2-front-fill fs-5 text-secondary me-2"></i> No credit card required</span>
          <span class="d-none d-md-inline opacity-50">&bull;</span>
-         <span class="d-flex align-items-center"><i class="bi bi-check-all fs-4 text-success me-2"></i> Built on REBA, RULA, and NIOSH aligned scoring</span>
+         <span class="d-flex align-items-center"><i class="bi bi-check-all fs-4 text-success me-2"></i> Built on recognized ergonomic methods, including REBA, RULA, and NIOSH-based assessment frameworks.</span>
          <span class="d-none d-md-inline opacity-50">&bull;</span>
          <span class="d-flex align-items-center"><i class="bi bi-shield-lock-fill fs-5 text-secondary me-2"></i> Secure task upload and exportable reporting</span>
       </div>
@@ -678,7 +678,7 @@
       <div class="row g-4">
         <div class="col-lg-4">
           <h4 class="fw-bold mb-3"><img src="/assets/img/logo.png" alt="WorkEddy logo" class="auth-brand-logo" /> WorkEddy</h4>
-          <p class="text-white-50 pe-lg-5">Automating ergonomic risk assessments to protect your workforce and streamline compliance.</p>
+          <p class="text-white-50 pe-lg-5">Automating ergonomic risk assessments to support MSD prevention, improve assessment consistency, and document prevention actions.</p>
         </div>
         <div class="col-6 col-lg-2 offset-lg-2">
           <h6 class="fw-bold text-uppercase mb-3">Product</h6>
