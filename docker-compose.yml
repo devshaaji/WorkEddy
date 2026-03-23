@@ -1,157 +1,126 @@
 services:
   nginx:
     image: nginx:1.27-alpine
-    ports:
-      - "8080:80"
-    volumes:
-      - ./infrastructure/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./public:/var/www/html/public:ro
-      - storage_data:/storage:ro
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.workeddy.rule=Host(`workeddy.com`) || Host(`www.workeddy.com`)
+      - traefik.http.routers.workeddy.entrypoints=websecure
+      - traefik.http.routers.workeddy.tls.certresolver=letsencrypt
+      - traefik.http.services.workeddy.loadbalancer.server.port=80
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1/ || exit 1
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 15s
+    volumes:
+      - ./infrastructure/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./public:/var/www/html/public
+      - storage_data:/storage:ro
     depends_on:
       - api
-
   api:
     image: workeddy-app
     build:
       context: .
       dockerfile: Dockerfile
     working_dir: /var/www/html
-    command: ["php-fpm", "-F"]
-    volumes:
-      - .:/var/www/html                       # live-reload project code
-      - vendor_data:/var/www/html/vendor      # preserve image-built vendor (not overwritten by host mount)
-      - storage_data:/storage                 # shared upload storage with worker
+    command:
+      - php-fpm
+      - -F
     env_file:
       - .env
       - ./infrastructure/docker/compose.env
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
     restart: unless-stopped
-
+    volumes:
+      - .:/var/www/html # live-reload project code
+      - vendor_data:/var/www/html/vendor # preserve image-built vendor (not overwritten by host mount)
+      - storage_data:/storage # same volume as api service
+    depends_on:
+      - mysql
+      - redis
   schema-sync:
     image: workeddy-app
     working_dir: /var/www/html
-    volumes:
-      - .:/var/www/html
-      - vendor_data:/var/www/html/vendor
-      - storage_data:/storage
     env_file:
       - .env
       - ./infrastructure/docker/compose.env
-    command: ["sh", "/var/www/html/infrastructure/docker/schema-sync.sh"]
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
+    command:
+      - sh
+      - /var/www/html/infrastructure/docker/schema-sync.sh
     restart: no
-
+    volumes:
+      - .:/var/www/html # live-reload project code
+      - vendor_data:/var/www/html/vendor # preserve image-built vendor (not overwritten by host mount)
+      - storage_data:/storage # same volume as api service
+    depends_on:
+      - mysql
+      - redis
   seed:
     image: workeddy-app
     working_dir: /var/www/html
-    volumes:
-      - .:/var/www/html
-      - vendor_data:/var/www/html/vendor
-      - storage_data:/storage
     env_file:
       - .env
       - ./infrastructure/docker/compose.env
-    command: ["php", "scripts/seed.php", "run"]
-    depends_on:
-      mysql:
-        condition: service_healthy
-      api:
-        condition: service_started
+    command:
+      - php
+      - scripts/seed.php
+      - run
     profiles:
       - ops
     restart: no
-
+    volumes:
+      - .:/var/www/html # live-reload project code
+      - vendor_data:/var/www/html/vendor # preserve image-built vendor (not overwritten by host mount)
+      - storage_data:/storage # same volume as api service
+    depends_on:
+      - mysql
+      - api
   video-worker:
     build:
       context: .
       dockerfile: infrastructure/docker/video-worker.dockerfile
-    volumes:
-      - ./workers:/app/workers
-      - ./shared:/app/shared:ro
-      - ./ml:/app/ml
-      - storage_data:/storage                 # same volume as api service
     env_file:
       - .env
       - ./infrastructure/docker/compose.env
     healthcheck:
-      test: ["CMD", "python", "/app/workers/shared/container_healthcheck.py", "video-worker"]
+      test:
+        - CMD
+        - python
+        - /app/workers/shared/container_healthcheck.py
+        - video-worker
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
-    depends_on:
-      nginx:
-        condition: service_healthy
     restart: unless-stopped
-
-  # live-worker:
-  #   build:
-  #     context: .
-  #     dockerfile: infrastructure/docker/live-worker.dockerfile
-  #   profiles:
-  #     - live
-  #   volumes:
-  #     - ./workers/live-worker:/app/workers/live-worker
-  #     - ./workers/shared:/app/workers/shared:ro
-  #     - ./shared:/app/shared:ro
-  #     - ./ml:/app/ml
-  #     - storage_data:/storage
-  #   env_file:
-  #     - .env
-  #     - ./infrastructure/docker/compose.env
-  #   environment:
-  #     LIVE_POSE_ENGINE: ${LIVE_POSE_ENGINE:-yolo26}
-  #     LIVE_MULTI_PERSON_MODE: ${LIVE_MULTI_PERSON_MODE:-false}
-  #     LIVE_YOLO_MODEL_VARIANT: ${LIVE_YOLO_MODEL_VARIANT:-yolo26n-pose}
-  #     LIVE_MEDIAPIPE_MODEL_VARIANT: ${LIVE_MEDIAPIPE_MODEL_VARIANT:-pose_landmarker_lite}
-  #     LIVE_TARGET_FPS: ${LIVE_TARGET_FPS:-5}
-  #     LIVE_BATCH_WINDOW_MS: ${LIVE_BATCH_WINDOW_MS:-500}
-  #     LIVE_MAX_E2E_LATENCY_MS: ${LIVE_MAX_E2E_LATENCY_MS:-2000}
-  #     LIVE_WORKER_POLL_INTERVAL_SECONDS: ${LIVE_WORKER_POLL_INTERVAL_SECONDS:-1}
-  #     LIVE_WORKER_COUNT: ${LIVE_WORKER_COUNT:-1}
-  #   healthcheck:
-  #     test: ["CMD", "python", "/app/workers/shared/container_healthcheck.py", "live-worker"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 15s
-  #   depends_on:
-  #     nginx:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-
+    volumes:
+      - ./workers:/app/workers
+      - ./shared:/app/shared:ro
+      - ./ml:/app/ml
+      - storage_data:/storage # same volume as api service
+    depends_on:
+      - nginx
   video-retention:
     image: workeddy-app
     working_dir: /var/www/html
-    volumes:
-      - .:/var/www/html
-      - vendor_data:/var/www/html/vendor
-      - storage_data:/storage
     env_file:
       - .env
       - ./infrastructure/docker/compose.env
-    command: ["sh", "-lc", "while true; do php scripts/cleanup-videos.php; sleep $${VIDEO_CLEANUP_INTERVAL_SECONDS:-86400}; done"]
-    depends_on:
-      mysql:
-        condition: service_healthy
-      api:
-        condition: service_started
+    command:
+      - sh
+      - -lc
+      - while true; do php scripts/cleanup-videos.php; sleep $${VIDEO_CLEANUP_INTERVAL_SECONDS:-86400}; done
     restart: no
-
+    volumes:
+      - .:/var/www/html # live-reload project code
+      - vendor_data:/var/www/html/vendor # preserve image-built vendor (not overwritten by host mount)
+      - storage_data:/storage # same volume as api service
+    depends_on:
+      - mysql
+      - api
   mysql:
     image: mysql:8.4
     environment:
@@ -159,34 +128,39 @@ services:
       MYSQL_USER: ${DB_USER:-workeddy}
       MYSQL_PASSWORD: ${DB_PASS:-workeddy}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:-rootsecret}
-    ports:
-      - "3307:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}"]
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}
       interval: 10s
       timeout: 5s
       retries: 6
       start_period: 30s
-
+    ports:
+      - 3307:3306
+    volumes:
+      - mysql_data:/var/lib/mysql
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "/etc/redis/redis.conf"]
-    ports:
-      - "6380:6379"
-    volumes:
-      - ./infrastructure/queue/redis.conf:/etc/redis/redis.conf:ro
-      - redis_data:/data
+    command:
+      - redis-server
+      - /etc/redis/redis.conf
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        - CMD
+        - redis-cli
+        - ping
       interval: 10s
       timeout: 3s
       retries: 10
       start_period: 10s
-
+    ports:
+      - 6380:6379
+    volumes:
+      - ./infrastructure/queue/redis.conf:/etc/redis/redis.conf:ro
+      - redis_data:/data
 volumes:
   mysql_data:
   redis_data:
-  vendor_data:    # PHP Composer dependencies (built inside image, not overridden by host)
-  storage_data:   # Shared upload/processed file storage (api writes, worker reads)
+  vendor_data: # PHP Composer dependencies (built inside image, not overridden by host)
+  storage_data: # Shared upload/processed file storage (api writes, worker reads)

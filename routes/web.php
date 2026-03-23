@@ -14,6 +14,9 @@ return static function (RouteCollector $r): void {
     $guest = static fn (string $viewFile) => WebView::guestView($viewFile);
 
     $r->addRoute('GET', '/', $public('views/site/index.php'));
+    $r->addRoute('GET', '/privacy-policy', $public('views/site/privacy-policy.php'));
+    $r->addRoute('GET', '/terms-of-service', $public('views/site/terms-of-service.php'));
+    $r->addRoute('GET', '/founder-story', $public('views/site/founder-story.php'));
 
     $r->addRoute('GET', '/login', $guest('views/auth/login.php'));
     $r->addRoute('GET', '/register', $guest('views/auth/register.php'));
