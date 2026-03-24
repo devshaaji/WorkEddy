@@ -22,7 +22,7 @@ include_once __DIR__ . '/../partials/site/header.php';
       <div class="row justify-content-center mb-5">
         <div class="col-lg-8 col-xl-7">
           <div class="founder-card d-flex flex-column flex-sm-row align-items-center text-center text-sm-start gap-4 mx-auto">
-             <img src="/assets/img/founder.jpeg" alt="Treasure Nkemdilim James" class="rounded-circle shadow-sm border" style="width: 140px; height: 140px; object-fit: cover;">
+             <img src="/assets/img/founder.jpeg" alt="Treasure Nkemdilim James" class="rounded-circle shadow-sm border" style="width: 140px; height: 140px; object-fit: fill;">
              <div>
                 <h4 class="fw-bold fs-6 mb-1 text-dark" style="font-family:'Outfit',sans-serif;">Treasure Nkemdilim James</h4>
                 <p class="small text-muted mb-2">MS, MSISD, MOSH, PCQI</p>
