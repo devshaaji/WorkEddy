@@ -905,6 +905,36 @@ input[type="button"]:not([class]):focus {
   height: 30px;
 }
 
+/* ── Special CTA & Modals ─────────────────────────────── */
+.cta-bg-glow {
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+
+.cta-title {
+  font-size: 2.5rem;
+  letter-spacing: -1px;
+  font-family: 'Outfit', sans-serif;
+}
+
+.modal-text-relaxed {
+  line-height: 1.6;
+}
+
+.modal-text-md {
+  font-size: 0.95rem;
+}
+
+.modal-subtitle {
+  font-size: 1.1rem;
+}
+
+.modal-btn-text {
+  font-size: 0.9rem;
+}
+
 /* ── Modals ───────────────────────────────────────────── */
 .modal-content {
   border: none;
@@ -1136,8 +1166,7 @@ input[type="button"]:not([class]):focus {
 }
 
 .auth-brand-logo {
-  width: 40px;
-  height: 40px;
+  max-width: 150px;
   display: flex;
   align-items: center;
   justify-content: center;

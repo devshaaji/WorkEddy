@@ -13,6 +13,7 @@ use WorkEddy\Controllers\BillingController;
 use WorkEddy\Controllers\CopilotController;
 use WorkEddy\Controllers\ControlActionController;
 use WorkEddy\Controllers\DashboardController;
+use WorkEddy\Controllers\FeedbackController;
 use WorkEddy\Controllers\LeadingIndicatorController;
 use WorkEddy\Controllers\NotificationController;
 use WorkEddy\Controllers\ObserverController;
@@ -32,6 +33,7 @@ use WorkEddy\Repositories\BillingRepository;
 use WorkEddy\Repositories\CopilotAuditRepository;
 use WorkEddy\Repositories\ControlRecommendationRepository;
 use WorkEddy\Repositories\ControlActionRepository;
+use WorkEddy\Repositories\FeedbackRepository;
 use WorkEddy\Repositories\LeadingIndicatorRepository;
 use WorkEddy\Repositories\NotificationRepository;
 use WorkEddy\Repositories\LiveSessionRepository;
@@ -42,6 +44,7 @@ use WorkEddy\Repositories\WorkspaceRepository;
 use WorkEddy\Services\AdminService;
 use WorkEddy\Services\AuthService;
 use WorkEddy\Services\BillingPeriodService;
+use WorkEddy\Services\FeedbackService;
 use WorkEddy\Services\BillingService;
 use WorkEddy\Services\CopilotAuditService;
 use WorkEddy\Services\CopilotDeterministicService;
@@ -389,6 +392,16 @@ final class Container
         return $this->make('adminService', fn () => new AdminService($this->adminRepo()));
     }
 
+    public function feedbackRepo(): FeedbackRepository
+    {
+        return $this->make('feedbackRepo', fn () => new FeedbackRepository($this->db()));
+    }
+
+    public function feedbackService(): FeedbackService
+    {
+        return $this->make('feedbackService', fn () => new FeedbackService($this->feedbackRepo()));
+    }
+
     public function orgService(): OrgService
     {
         return $this->make('orgService', fn () => new OrgService(
@@ -464,6 +477,11 @@ final class Container
     public function adminCtrl(): AdminController
     {
         return $this->make('adminCtrl', fn () => new AdminController($this->adminService()));
+    }
+
+    public function feedbackCtrl(): FeedbackController
+    {
+        return $this->make('feedbackCtrl', fn () => new FeedbackController($this->feedbackService()));
     }
 
     public function orgCtrl(): OrgController

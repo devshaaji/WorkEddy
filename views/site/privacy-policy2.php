@@ -1,22 +1,24 @@
 <?php
-$pageTitle = "Privacy Policy - WorkEddy";
-include_once __DIR__ . "/../partials/site/header.php";
+$title = 'Privacy Policy';
+include __DIR__ . '/../partials/site/v2_header.php';
 ?>
-
-  <!-- Page Header -->
-  <header class="page-header text-center">
-    <div class="container">
-      <h1 class="fw-bold" style="font-family:'Outfit',sans-serif;font-size:3.5rem;">Privacy Policy</h1>
-      <p class="text-muted fs-5 mt-3">Effective Date: July 31, 2025 <span class="mx-2">&bull;</span> Last Updated: July 31, 2025</p>
+<!-- Page Header -->
+  <header class="page-header text-center position-relative">
+    <div class="container relative z-1">
+      <div class="badge bg-info bg-opacity-10 text-cyan border border-info border-opacity-25 rounded-pill px-3 py-2 mb-3 fw-bold font-mono text-uppercase" style="letter-spacing: 1px;">
+        Legal
+      </div>
+      <h1 class="fw-bold mb-3 text-white" style="font-size:3.5rem; letter-spacing: -1px;">Privacy Policy</h1>
+      <p class="text-light opacity-50 fs-5 font-mono" style="font-size: 0.9rem !important;">Effective Date: July 31, 2025 <span class="mx-2">&bull;</span> Last Updated: July 31, 2025</p>
     </div>
   </header>
 
   <!-- Main Content -->
   <main class="py-5">
     <div class="container">
-      <div class="policy-content">
-        
-        <h2>Your privacy at WorkEddy</h2>
+      <div class="policy-content tech-panel p-4 p-md-5">
+
+        <h2 class="mt-0">Your privacy at WorkEddy</h2>
         <p>WorkEddy is built to help organizations identify ergonomic risk early, improve workplace safety, and manage assessment information responsibly. We know that the data handled through our website and platform can include sensitive workplace content, so we are committed to transparency, controlled access, thoughtful retention, and responsible use.</p>
         <p>This Privacy Policy explains how WorkEddy collects, uses, stores, shares, and protects personal data when you visit WorkEddy.com, request a demo, create an account, use our platform, upload content, receive support, or interact with us in any other way.</p>
         <p>If you use WorkEddy through your employer or another organization, that organization may control some of the data processed within the platform. In those cases, their internal privacy notice may also apply.</p>
@@ -44,7 +46,7 @@ include_once __DIR__ . "/../partials/site/header.php";
 
         <h2>3. Information we collect</h2>
         <p>We collect information in the following categories:</p>
-        
+
         <h3>A. Information you provide directly</h3>
         <p>This may include:</p>
         <ul>
@@ -241,15 +243,16 @@ include_once __DIR__ . "/../partials/site/header.php";
 
         <h2>17. Contact us</h2>
         <p>If you have questions, requests, or concerns about this Privacy Policy or WorkEddy's handling of personal data, please contact us at:</p>
-        <div class="p-4 bg-light rounded-4 border mt-4">
-          <p class="mb-1 fw-bold">WorkEddy</p>
-          <p class="mb-1">Elhagibbor Solutions Limited</p>
-          <p class="mb-3">Block L, House 3, G.R.A. Layout, Jos, NG 933105</p>
-          <p class="mb-1"><strong>Email:</strong> <a href="mailto:privacy@workeddy.com" class="text-primary text-decoration-none">privacy@workeddy.com</a></p>
-          <p class="mb-0"><strong>Support:</strong> <a href="mailto:support@workeddy.com" class="text-primary text-decoration-none">support@workeddy.com</a></p>
+        <div class="p-4 contact-box mt-4">
+          <p class="mb-1 fw-bold text-white">WorkEddy</p>
+          <p class="mb-1 text-light opacity-75">Elhagibbor Solutions Limited</p>
+          <p class="mb-3 text-light opacity-75">Block L, House 3, G.R.A. Layout, Jos, NG 933105</p>
+          <p class="mb-1"><strong>Email:</strong> <a href="mailto:privacy@workeddy.com" class="text-cyan text-decoration-none">privacy@workeddy.com</a></p>
+          <p class="mb-0"><strong>Support:</strong> <a href="mailto:support@workeddy.com" class="text-cyan text-decoration-none">support@workeddy.com</a></p>
         </div>
       </div>
     </div>
   </main>
-<?php include_once __DIR__ . "/../partials/site/footer.php"; ?></body>
-</html>
+
+  <!-- Footer -->
+<?php include __DIR__ . '/../partials/site/v2_footer.php'; ?>
