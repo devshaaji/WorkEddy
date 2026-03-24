@@ -49,17 +49,21 @@ final class FeedbackRepository
     {
         $sql    = 'SELECT * FROM user_feedback';
         $params = [];
+        $types  = [];
 
         if ($status !== null) {
             $sql      .= ' WHERE status = ?';
             $params[]  = $status;
+            $types[]   = \Doctrine\DBAL\ParameterType::STRING;
         }
 
         $sql .= ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
         $params[] = $limit;
         $params[] = $offset;
+        $types[]  = \Doctrine\DBAL\ParameterType::INTEGER;
+        $types[]  = \Doctrine\DBAL\ParameterType::INTEGER;
 
-        $rows = $this->db->fetchAllAssociative($sql, $params);
+        $rows = $this->db->fetchAllAssociative($sql, $params, $types);
         return array_map(fn (array $r) => UserFeedback::fromRow($r), $rows);
     }
 

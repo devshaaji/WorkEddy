@@ -7,7 +7,7 @@
       <div class="row g-4">
         <div class="col-lg-4">
           <h4 class="fw-bold mb-3 d-flex align-items-center gap-2">
-            <i class="bi bi-cpu text-cyan"></i> WorkEddy
+            <img src="/assets/img/workeddy.png" alt="WorkEddy" class="img-fluid" style="max-width: 150px;">
           </h4>
           <p class="text-white-50 pe-lg-5">Automating ergonomic risk assessments to support MSD prevention, improve assessment consistency, and document prevention actions.</p>
         </div>
@@ -32,7 +32,7 @@
           <h6 class="fw-bold text-uppercase mb-3 font-mono" style="font-size:0.8rem;">Legal</h6>
           <ul class="list-unstyled text-white-50">
             <li class="mb-2"><a href="/privacy-policy2" class="text-white-50 text-decoration-none hover-text-white">Privacy Policy</a></li>
-            <li class="mb-2"><a href="/terms-of-service" class="text-white-50 text-decoration-none hover-text-white">Terms of Service</a></li>
+            <li class="mb-2"><a href="/terms-of-service2" class="text-white-50 text-decoration-none hover-text-white">Terms of Service</a></li>
           </ul>
         </div>
       </div>

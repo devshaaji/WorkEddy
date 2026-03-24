@@ -1,14 +1,14 @@
 <?php
-$pageTitle  = 'User Feedback';
+$pageTitle = 'User Feedback';
 $activePage = 'admin-feedback';
 ob_start();
 ?>
 <div x-data="adminFeedbackPage">
 
   <?php
-  $headerTitle        = 'User Feedback';
-  $headerBreadcrumb   = 'Admin / Feedback';
-  $headerActionsHtml  = '
+$headerTitle = 'User Feedback';
+$headerBreadcrumb = 'Admin / Feedback';
+$headerActionsHtml = '
     <span class="badge badge-soft-secondary px-3 py-2 text-sm" x-text="total + \' total\'"></span>
     <select class="form-select form-select-sm ms-2" x-model="filterStatus" @change="load()" style="width:auto;min-width:120px;">
       <option value="">All</option>
@@ -16,8 +16,8 @@ ob_start();
       <option value="reviewed">Reviewed</option>
       <option value="actioned">Actioned</option>
     </select>';
-  require __DIR__ . '/../partials/page-header.php';
-  ?>
+require __DIR__ . '/../partials/page-header.php';
+?>
 
   <div class="card">
 
@@ -202,7 +202,7 @@ ob_start();
         try {
           const params = new URLSearchParams({ limit: this.limit, offset: this.offset });
           if (this.filterStatus) params.set('status', this.filterStatus);
-          const r = await fetch('/api/admin/feedback?' + params.toString(), {
+          const r = await fetch('/api/v1/admin/feedback?' + params.toString(), {
             headers: { Authorization: 'Bearer ' + (localStorage.getItem('workeddy_token') ?? '') }
           });
           if (!r.ok) throw new Error(await r.text());
@@ -218,7 +218,7 @@ ob_start();
 
       async setStatus(f, status) {
         try {
-          const r = await fetch('/api/admin/feedback/' + f.id + '/status', {
+          const r = await fetch('/api/v1/admin/feedback/' + f.id + '/status', {
             method:  'PUT',
             headers: {
               Authorization:  'Bearer ' + (localStorage.getItem('workeddy_token') ?? ''),

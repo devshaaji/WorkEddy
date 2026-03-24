@@ -153,7 +153,9 @@ $liveFeatureEnabled = (bool) ((require dirname(__DIR__, 2) . '/app/config/live.p
         'admin-orgs'      => ['/admin/organizations', 'bi-building',      'Organizations'],
         'admin-users'     => ['/admin/users',         'bi-people-fill',   'All Users'],
         'admin-plans'     => ['/admin/plans',         'bi-tags',          'Plans'],
+        'admin-feedback'  => ['/admin/feedback',      'bi-chat-square-text', 'Feedback'],
         'admin-settings'  => ['/admin/settings',      'bi-sliders',       'Settings'],
+       
       ];
       foreach ($adminNav as $key => [$href, $icon, $label]):
         $cls = ($activePage === $key) ? ' active' : '';
