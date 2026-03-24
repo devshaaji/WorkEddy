@@ -156,6 +156,11 @@ return static function (Container $c): Closure {
         $r->addRoute('DELETE', '/org/members/{id:\d+}',  fn ($v, $b) => $c->orgCtrl()->removeMember($c->auth(), (int) $v['id']));
         $r->addRoute('GET',    '/org/subscription',      fn ($v, $b) => $c->orgCtrl()->getSubscription($c->auth()));
         $r->addRoute('PUT',    '/org/subscription',      fn ($v, $b) => $c->orgCtrl()->changePlan($c->auth(), $b));
+
+        // -- User Feedback
+        $r->addRoute('POST', '/feedback',                        fn ($v, $b) => $c->feedbackCtrl()->submit($b));
+        $r->addRoute('GET',  '/admin/feedback',                  fn ($v, $b) => $c->feedbackCtrl()->index($c->auth()));
+        $r->addRoute('PUT',  '/admin/feedback/{id:\d+}/status',  fn ($v, $b) => $c->feedbackCtrl()->updateStatus($c->auth(), (int) $v['id'], $b));
     };
 };
 

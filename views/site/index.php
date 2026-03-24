@@ -1,204 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WorkEddy - Ergonomics Risk Assessment</title>
-  
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Bootstrap 5 CSS -->
-  <link href="/assets/css/core.css" rel="stylesheet">
-  <!-- Bootstrap Icons -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  
-  <!-- Global Styles (inherited base variables) -->
-  <link href="/assets/css/app.css" rel="stylesheet">
-  
-  <style>
-    /* Marketing specific styles overriding/extending app.css */
-    :root {
-      --hero-bg-accent: #f5f3ff; /* light purple */
-    }
-    body {
-      background-color: #ffffff;
-    }
-    .marketing-nav {
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(0,0,0,0.05);
-    }
-    .landing-hero {
-      padding: 120px 0 80px 0;
-      background: linear-gradient(135deg, var(--hero-bg-accent) 0%, rgba(255,255,255,0) 100%);
-      position: relative;
-      overflow: hidden;
-    }
-    .landing-hero::before {
-      content: '';
-      position: absolute;
-      top: -10%;
-      right: -5%;
-      width: 50vw;
-      height: 50vw;
-      background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, rgba(255,255,255,0) 70%);
-      border-radius: 50%;
-      z-index: 0;
-    }
-    .hero-content {
-      position: relative;
-      z-index: 1;
-    }
-    .hero-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 3.0rem;
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -1px;
-      color: #111827;
-      margin-bottom: 1.5rem;
-    }
-    .hero-title span {
-      background: var(--we-hero-gradient, linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .hero-subtitle {
-      font-size: 1.1rem;
-      color: #6b7280;
-      margin-bottom: 2rem;
-      max-width: 600px;
-    }
-    .feature-card {
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      background: #ffffff;
-      border: 1px solid rgba(0,0,0,0.05);
-    }
-    .feature-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-    }
-    .feature-icon-box {
-      width: 64px;
-      height: 64px;
-      border-radius: 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      margin-bottom: 1.5rem;
-      background: var(--hero-bg-accent);
-      color: var(--we-primary);
-    }
-    
-    @media (max-width: 991px) {
-      .hero-title { font-size: 2.5rem; }
-      .landing-hero { padding: 100px 0 60px 0; text-align: center; }
-      .hero-subtitle { margin: 0 auto 2rem; }
-      .hero-buttons { justify-content: center; }
-      .hero-image-col { margin-top: 3rem; }
-      .micro-value-tags { justify-content: center; }
-    }
-    
-    /* Mock UI frame for the hero */
-    .mock-ui-frame {
-      background: #fff;
-      border-radius: 1.5rem;
-      box-shadow: 0 25px 50px -12px rgba(124, 58, 237, 0.25);
-      border: 1px solid rgba(124, 58, 237, 0.1);
-      overflow: hidden;
-      transform: perspective(1000px) rotateY(-5deg) rotateX(5deg);
-      transition: transform 0.5s ease;
-    }
-    .mock-ui-frame:hover {
-      transform: perspective(1000px) rotateY(0deg) rotateX(0deg);
-    }
-    .mock-ui-header {
-      background: #f8fafc;
-      padding: 1rem;
-      border-bottom: 1px solid #e2e8f0;
-      display: flex;
-      gap: 0.5rem;
-    }
-    .mock-ui-dot { width: 12px; height: 12px; border-radius: 50%; }
-    .mock-ui-body { background: #fafafa; }
-    
-    /* New Hero Additions */
-    .industry-selector {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 2rem;
-        padding: 0.25rem;
-        display: inline-flex;
-        gap: 0.25rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-    .industry-tab {
-        padding: 0.5rem 1rem;
-        border-radius: 1.5rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        cursor: pointer;
-        color: #64748b;
-        transition: all 0.2s;
-    }
-    .industry-tab.active {
-        background: var(--hero-bg-accent);
-        color: var(--we-primary, #7c3aed);
-    }
-    
-    .pose-overlay-svg {
-        position: absolute;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        z-index: 10;
-        pointer-events: none;
-    }
-    
-    .micro-value-tags {
-        display: flex;
-        gap: 1rem;
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: #4b5563;
-        flex-wrap: wrap;
-    }
-    .micro-value-tag {
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-    }
-  </style>
-</head>
-<body>
+<?php
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg fixed-top marketing-nav py-3">
-    <div class="container">
-      <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none" href="/">
-        <img src="/assets/img/logo.png" alt="WorkEddy logo" class="auth-brand-logo flex-shrink-0" />
-        <span class="auth-brand-name">WorkEddy</span>
-      </a>
-      <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#marketingNavbar">
-        <i class="bi bi-list fs-2 text-dark"></i>
-      </button>
-      <div class="collapse navbar-collapse" id="marketingNavbar">
-        <ul class="navbar-nav mx-auto mb-2 mb-lg-0 fw-medium">
-          <li class="nav-item"><a class="nav-link px-3" href="#features">Features</a></li>
-          <li class="nav-item"><a class="nav-link px-3" href="#how-it-works">How it Works</a></li>
-          <li class="nav-item"><a class="nav-link px-3" href="#pricing">Pricing</a></li>
-        </ul>
-        <div class="d-flex gap-2 flex-column flex-lg-row mt-3 mt-lg-0">
-          <a href="/login" class="btn btn-light rounded-pill px-4 fw-bold">Login</a>
-          <a href="/register" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Get Started</a>
-        </div>
-      </div>
-    </div>
-  </nav>
-
+$pageTitle = "WorkEddy";
+include __DIR__ . '/../partials/site/header.php';
+?>
   <!-- Hero Section -->
   <section class="landing-hero">
     <div class="container">
@@ -207,7 +11,7 @@
           <div class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 mb-3 fw-bold border border-primary border-opacity-25">
             ✨ AI Ergonomics for MSD Prevention
           </div>
-          <h1 class="hero-title">Prevent musculoskeletal injuries <span>before they happen.</span></h1>
+          <h1 class="hero-title">Prevent musculoskeletal injuries <span>before they happen</span></h1>
           <p class="hero-subtitle">WorkEddy transforms everyday task videos into ergonomic risk scores, prioritized interventions, and reports your team can act on within minutes. Identify harmful movement sooner and guide safer work design.</p>
           
           <div class="d-flex gap-3 hero-buttons flex-wrap">
@@ -223,7 +27,7 @@
           
           <p class="small text-muted mt-3 mb-4"><i class="bi bi-shield-check text-success"></i> Built with secure access and privacy conscious task analysis.</p>
 
-          <div class="mt-4 pt-4 border-top">
+          <!-- <div class="mt-4 pt-4 border-top">
             <div class="d-flex align-items-center gap-4 flex-wrap opacity-50 mb-3 grayscale" style="filter: grayscale(100%);">
               <span class="fs-5 fw-bold font-monospace">AMAZON</span>
               <span class="fs-5 fw-bold font-monospace">DHL</span>
@@ -231,7 +35,7 @@
               <span class="fs-5 fw-bold font-monospace">TESCO</span>
             </div>
             <p class="small text-dark fw-medium mb-0"><strong>1,248 task scans completed.</strong> Used across warehousing, logistics, and manufacturing teams.</p>
-          </div>
+          </div> -->
         </div>
         <div class="col-lg-6 hero-image-col">
           <div class="d-flex justify-content-center mb-3">
@@ -523,81 +327,6 @@
     </div>
   </section>
 
-  <!-- About Us -->
-  <section id="about-us" class="py-5 bg-white">
-    <div class="container py-5">
-      <div class="row align-items-center">
-        <div class="col-lg-6 mb-5 mb-lg-0 pe-lg-5">
-          <h2 class="fw-bold mb-4" style="font-family:'Outfit',sans-serif;font-size:2.75rem; line-height: 1.1; letter-spacing: -1px;">About Us</h2>
-          <p class="fs-5 text-dark fw-medium mb-4">WorkEddy is an AI ergonomics platform built to help organizations prevent musculoskeletal disorders by providing earlier risk visibility, faster intervention, and stronger evidence of improvement over time.</p>
-          <p class="text-muted mb-4">The platform transforms everyday task videos into ergonomic risk scores, prioritized intervention guidance, and reports that teams can act on within minutes. Rather than positioning ergonomic assessment as a slow, manual process, WorkEddy is designed to help safety, operations, and workplace health teams identify harmful movement early, understand exposure by task and body region, and focus attention where risk is highest.</p>
-          <p class="text-muted mb-0">WorkEddy is built around the workflow buyers care about most. Capture the task. Detect posture risk using trusted ergonomic methods. Fix what needs attention first. Then compare results over time to see whether changes are reducing exposure. That structure supports assessment and prevention decision-making across teams and sites.</p>
-        </div>
-        <div class="col-lg-5 offset-lg-1 mt-5 mt-lg-0">
-          <div class="bg-white rounded-4 p-4 p-lg-5 border shadow-sm h-100 d-flex flex-column">
-            
-            <div class="flex-grow-1 d-flex justify-content-center align-items-center py-5">
-              <img src="/assets/img/WorkEddy Main Logo.png" alt="WorkEddy Logo" class="img-fluid" style="max-width: 280px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.03));">
-            </div>
-            
-            <div class="d-flex align-items-center gap-3 pt-4 border-top mt-auto">
-              <div class="bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 54px; height: 54px;">
-                <i class="bi bi-shield-check fs-3"></i>
-              </div>
-              <div>
-                <p class="mb-1 fw-bold text-dark lh-sm">Moving from delayed review</p>
-                <p class="mb-0 small text-muted">To earlier action and better prevention outcomes.</p>
-              </div>
-            </div>
-            
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Founder Note -->
-  <section id="founder-note" class="py-5 bg-light border-top border-bottom">
-    <div class="container py-5">
-      <div class="row justify-content-center">
-        <div class="col-lg-10 col-xl-9">
-          <div class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 mb-4 fw-bold border border-primary border-opacity-25 mx-auto d-table">
-             From the Founder
-          </div>
-          <h2 class="fw-bold mb-5 text-center" style="font-family:'Outfit',sans-serif;font-size:2.5rem; letter-spacing: -0.5px;">Why we built WorkEddy</h2>
-          
-          <div class="row align-items-center">
-             <div class="col-md-5 col-lg-4 mb-4 mb-md-0 d-flex flex-column align-items-center text-center text-md-start align-items-md-start">
-                <img src="/assets/img/founder.jpeg" alt="Treasure Nkemdilim James" class="img-fluid rounded-circle mb-3 shadow-sm border" style="width: 180px; height: 180px; object-fit: cover;">
-                <h5 class="fw-bold mb-1 text-dark" style="font-family:'Outfit',sans-serif;">Treasure Nkemdilim James</h5>
-                <p class="small text-muted mb-0">MS, MSISD, MOSH, PCQI</p>
-                <p class="small fw-bold text-primary mb-3">Founder and Product Lead</p>
-                <div class="d-inline-flex bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-3 px-3 py-2">
-                   <div class="d-flex align-items-center gap-2 text-start">
-                     <i class="bi bi-patch-check-fill fs-5"></i>
-                     <span class="fw-bold lh-sm text-success" style="font-size: 0.7rem; text-transform: uppercase;">IRCA Certified ISO 45001<br>Lead Auditor</span>
-                   </div>
-                </div>
-             </div>
-             
-             <div class="col-md-7 col-lg-8 ps-md-4 ps-lg-5">
-                <div class="fs-5 text-dark fw-medium lh-base mb-4 position-relative pb-2" style="border-bottom: 2px dashed rgba(0,0,0,0.05);">
-                   <i class="bi bi-quote position-absolute text-primary opacity-25" style="font-size: 4rem; top: -1.75rem; left: -1.5rem; z-index: 0;"></i>
-                   <p class="position-relative" style="z-index: 1;">"We started WorkEddy because teams often wait too long for clear answers, and by then, strain has become injury.</p>
-                   <p class="position-relative" style="z-index: 1;">For too long, ergonomic reviews have been slow, manual, and difficult to scale across work environments. Safety teams are doing serious work, yet many still have to rely on scattered observations, delayed assessments, and tools that identify risk without clearly showing what should happen next. I believed there had to be a better way.</p>
-                   <p class="position-relative mb-0 fw-bold" style="z-index: 1;">That belief is what led me to build WorkEddy."</p>
-                </div>
-                
-                <a href="/founder-story" class="btn btn-outline-dark fw-bold rounded-pill mt-3 px-4 shadow-sm">
-                  Read the full story <i class="bi bi-chevron-right ms-1"></i>
-                </a>
-             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- Pricing -->
   <section id="pricing" class="py-5 bg-white">
     <div class="container py-5">
@@ -665,122 +394,121 @@
       <div class="d-flex flex-wrap justify-content-center gap-4 mt-5 text-muted small fw-bold">
          <span class="d-flex align-items-center"><i class="bi bi-credit-card-2-front-fill fs-5 text-secondary me-2"></i> No credit card required</span>
          <span class="d-none d-md-inline opacity-50">&bull;</span>
-         <span class="d-flex align-items-center"><i class="bi bi-check-all fs-4 text-success me-2"></i> Built on recognized ergonomic methods, including REBA, RULA, and NIOSH-based assessment frameworks.</span>
+         <span class="d-flex align-items-center"><i class="bi bi-check-all fs-4 text-success me-2"></i> Built on recognized ergonomic methods</span>
          <span class="d-none d-md-inline opacity-50">&bull;</span>
-         <span class="d-flex align-items-center"><i class="bi bi-shield-lock-fill fs-5 text-secondary me-2"></i> Secure task upload and exportable reporting</span>
+         <span class="d-flex align-items-center"><i class="bi bi-shield-lock-fill fs-5 text-secondary me-2"></i>including REBA, RULA, and NIOSH-based assessment frameworks</span>
       </div>
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer class="bg-dark text-white py-5">
-    <div class="container py-4">
-      <div class="row g-4">
-        <div class="col-lg-4">
-          <h4 class="fw-bold mb-3"><img src="/assets/img/logo.png" alt="WorkEddy logo" class="auth-brand-logo" /> WorkEddy</h4>
-          <p class="text-white-50 pe-lg-5">Automating ergonomic risk assessments to support MSD prevention, improve assessment consistency, and document prevention actions.</p>
+  <!-- Feedback CTA -->
+  <section class="py-5 border-top border-bottom position-relative overflow-hidden bg-light">
+    <!-- Optional background accent element matching index.php style -->
+    <div class="position-absolute top-0 start-50 translate-middle opacity-25 rounded-circle cta-bg-glow"></div>
+    
+    <div class="container py-5 position-relative z-1">
+      <div class="row align-items-center justify-content-center text-center">
+        <div class="col-lg-8">
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill border border-primary border-opacity-25 bg-primary bg-opacity-10 text-primary fw-bold small mb-4">
+            <i class="bi bi-stars"></i> WorkEddy First-Year Launch
+          </div>
+          <h2 class="fw-bold text-dark mb-4 cta-title">
+            Build WorkEddy with us
+          </h2>
+          <p class="text-muted fs-5 mb-5 px-md-4">
+            Use WorkEddy free for your first year from launch. In return, share feedback that helps us improve the experience, shape new features, and build around real team needs.
+          </p>
+          <button type="button" class="btn btn-primary btn-lg px-5 shadow-sm fw-bold rounded-pill" data-bs-toggle="modal" data-bs-target="#launchProgramModal">
+            Share feedback
+          </button>
         </div>
-        <div class="col-6 col-lg-2 offset-lg-2">
-          <h6 class="fw-bold text-uppercase mb-3">Product</h6>
-          <ul class="list-unstyled text-white-50">
-            <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Features</a></li>
-            <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Pricing</a></li>
-            <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Enterprise</a></li>
-          </ul>
-        </div>
-        <div class="col-6 col-lg-2">
-          <h6 class="fw-bold text-uppercase mb-3">Company</h6>
-          <ul class="list-unstyled text-white-50">
-            <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">About Us</a></li>
-            <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Careers</a></li>
-            <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Contact</a></li>
-          </ul>
-        </div>
-        <div class="col-6 col-lg-2">
-          <h6 class="fw-bold text-uppercase mb-3">Legal</h6>
-          <ul class="list-unstyled text-white-50">
-            <li class="mb-2"><a href="/privacy-policy" class="text-white-50 text-decoration-none">Privacy Policy</a></li>
-            <li class="mb-2"><a href="/terms-of-service" class="text-white-50 text-decoration-none">Terms of Service</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="border-top border-secondary mt-5 pt-4 text-center text-white-50 small">
-        &copy; <?= date('Y') ?> WorkEddy, Inc. All rights reserved.
       </div>
     </div>
-  </footer>
+  </section>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    function changeIndustry(industry, element) {
-      document.querySelectorAll('.industry-tab').forEach(t => t.classList.remove('active'));
-      element.classList.add('active');
-      
-      const title = document.getElementById('mockup-task-title');
-      const action = document.getElementById('mockup-action-title');
-      const insight = document.getElementById('mockup-insight');
-      const score = document.getElementById('mockup-score');
-      const actionDesc = document.getElementById('mockup-action-desc');
-      
-      if(industry === 'Warehouse') {
-        title.innerText = 'Recent Analysis: Warehouse Lifting';
-        action.innerText = 'Reduce trunk flexion by raising pallet height';
-        insight.innerText = 'Trunk flexion > 60° detected.';
-        score.innerText = '7.8';
-        actionDesc.innerHTML = '<i class="bi bi-arrow-down"></i> -3.2 Score Impact';
-      } else if(industry === 'Logistics') {
-        title.innerText = 'Recent Analysis: Package Loading';
-        action.innerText = 'Implement slide board for vehicle loading';
-        insight.innerText = 'Extended reach > 45cm detected.';
-        score.innerText = '6.5';
-        actionDesc.innerHTML = '<i class="bi bi-arrow-down"></i> -2.4 Score Impact';
-      } else if(industry === 'Manufacturing') {
-        title.innerText = 'Recent Analysis: Assembly Line';
-        action.innerText = 'Adjust workstation height to elbow level';
-        insight.innerText = 'Prolonged shoulder abduction detected.';
-        score.innerText = '8.1';
-        actionDesc.innerHTML = '<i class="bi bi-arrow-down"></i> -4.0 Score Impact';
-      } else if(industry === 'Healthcare') {
-        title.innerText = 'Recent Analysis: Patient Transfer';
-        action.innerText = 'Utilize mechanical lift for transfers';
-        insight.innerText = 'High lumbar shear forces detected.';
-        score.innerText = '9.2';
-        actionDesc.innerHTML = '<i class="bi bi-arrow-down"></i> -5.1 Score Impact';
-      } else if(industry === 'Construction') {
-        title.innerText = 'Recent Analysis: Rebar Tying';
-        action.innerText = 'Switch to rebar tying tool to reduce deep squat';
-        insight.innerText = 'Sustained deep knee flexion detected.';
-        score.innerText = '8.4';
-        actionDesc.innerHTML = '<i class="bi bi-arrow-down"></i> -3.8 Score Impact';
-      }
-      
-      // Reset toggle
-      document.getElementById('beforeAfterToggle').checked = false;
-      document.getElementById('mockup-score').nextElementSibling.className = 'badge bg-danger fs-6 align-middle ms-1 rounded-pill fw-bold';
-      document.getElementById('mockup-score').nextElementSibling.innerText = 'High Risk';
-      document.querySelector('.pose-overlay-svg').style.filter = 'none';
-    }
+  <!-- Launch Program Modal -->
+  <div class="modal fade" id="launchProgramModal" tabindex="-1" aria-labelledby="launchProgramModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-0 rounded-4">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark d-flex align-items-center" id="launchProgramModalLabel">
+            <i class="bi bi-rocket-takeoff text-primary me-2"></i> Launch Program
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 text-dark">
+          <h5 class="fw-bold mb-3 modal-subtitle">You are part of our first-year launch program</h5>
+          <p class="mb-0 text-muted modal-text-relaxed modal-text-md">
+            Your team gets free access to WorkEddy for one year from launch. We ask for honest feedback in return so we can improve the platform based on real use, real challenges, and real priorities. Tell us what works well, what needs to change, and what would help your team most. Your input will help shape what comes next.
+          </p>
+        </div>
+        <div class="modal-footer border-top bg-light rounded-bottom-4">
+          <button type="button" class="btn btn-outline-secondary rounded-pill modal-btn-text" data-bs-dismiss="modal">Maybe later</button>
+          <button type="button" class="btn btn-primary fw-bold rounded-pill modal-btn-text" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#feedbackFormModal">Share feedback</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    document.getElementById('beforeAfterToggle').addEventListener('change', function(e) {
-        const isChecked = e.target.checked;
-        const score = document.getElementById('mockup-score');
-        const badge = score.nextElementSibling;
-        const insight = document.getElementById('mockup-insight');
-        const poseOverlay = document.querySelector('.pose-overlay-svg');
-        
-        if (isChecked) {
-            let currentScore = parseFloat(score.innerText);
-            score.innerText = (currentScore - 3.2).toFixed(1);
-            badge.className = 'badge bg-success fs-6 align-middle ms-1 rounded-pill fw-bold';
-            badge.innerText = 'Low Risk';
-            insight.innerText = 'Task redesigned: Posture improved significantly.';
-            poseOverlay.style.filter = 'hue-rotate(180deg)';
-        } else {
-            // Re-trigger the active industry to restore default text
-            const activeTab = document.querySelector('.industry-tab.active');
-            changeIndustry(activeTab.innerText, activeTab);
-        }
-    });
-  </script>
+  <!-- Feedback Form Modal -->
+  <div class="modal fade" id="feedbackFormModal" tabindex="-1" aria-labelledby="feedbackFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content shadow-lg border-0 rounded-4">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-dark d-flex align-items-center" id="feedbackFormModalLabel">
+            <i class="bi bi-chat-square-text text-primary me-2"></i> Share Feedback
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 position-relative">
+          <div class="p-4 mb-4 rounded-4 border border-primary border-opacity-25 bg-primary bg-opacity-10 position-relative overflow-hidden">
+            <h6 class="text-primary fw-bold mb-2 position-relative z-1">Thank you for helping shape WorkEddy.</h6>
+            <p class="text-muted small mb-0 position-relative z-1 modal-text-relaxed">
+              Your feedback helps us improve the platform around real tasks, real teams, and real workplace needs. We want to hear what is working, what feels unclear, what takes too long, and what features or changes would make WorkEddy more useful for you. Every response helps guide future updates.
+            </p>
+          </div>
+          
+          <form id="feedbackForm">
+            <div id="feedbackAlert" class="d-none mb-3"></div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="feedbackName" class="form-label text-dark fw-medium small">Name (Optional)</label>
+                <input type="text" class="form-control" id="feedbackName" placeholder="Jane Doe">
+              </div>
+              <div class="col-md-6">
+                <label for="feedbackEmail" class="form-label text-dark fw-medium small">Email (Optional)</label>
+                <input type="email" class="form-control" id="feedbackEmail" placeholder="jane@example.com">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="feedbackType" class="form-label text-dark fw-medium small">Feedback Type</label>
+              <select class="form-select" id="feedbackType" required>
+                <option value="" class="text-muted">Select a category...</option>
+                <option value="improvement">Idea / Improvement</option>
+                <option value="issue">Issue / Bug</option>
+                <option value="feature">New Feature Request</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label for="feedbackMessage" class="form-label text-dark fw-medium small">Your Feedback</label>
+              <textarea class="form-control" id="feedbackMessage" rows="5" placeholder="Tell us what works well, what needs to change, and what would help your team most..." required></textarea>
+            </div>
+            
+            <div class="d-flex justify-content-end gap-2 border-top pt-4 mt-2">
+              <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" id="feedbackSubmitBtn" class="btn btn-primary fw-bold rounded-pill px-4">
+                <span id="feedbackBtnText">Submit Feedback <i class="bi bi-send ms-1"></i></span>
+                <span id="feedbackBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+              </button>
+            </div>
+          </form> 
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+<?php include_once __DIR__ . '/../partials/site/footer.php'; ?>
 </body>
 </html>

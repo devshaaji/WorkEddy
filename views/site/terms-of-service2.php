@@ -1,21 +1,24 @@
 <?php
-$pageTitle = "";
-include_once __DIR__ . "/../partials/site/header.php";
+$title = 'Terms of Service';
+include __DIR__ . '/../partials/site/v2_header.php';
 ?>
-  <!-- Page Header -->
-  <header class="page-header text-center">
-    <div class="container">
-      <h1 class="fw-bold" style="font-family:'Outfit',sans-serif;font-size:3.5rem;">Terms of Service</h1>
-      <p class="text-muted fs-5 mt-3">Effective Date: July 31, 2025 <span class="mx-2">&bull;</span> Last Updated: July 31, 2025</p>
+<!-- Page Header -->
+  <header class="page-header text-center position-relative">
+    <div class="container relative z-1">
+      <div class="badge bg-info bg-opacity-10 text-cyan border border-info border-opacity-25 rounded-pill px-3 py-2 mb-3 fw-bold font-mono text-uppercase" style="letter-spacing: 1px;">
+        Legal
+      </div>
+      <h1 class="fw-bold mb-3 text-white" style="font-size:3.5rem; letter-spacing: -1px;">Terms of Service</h1>
+      <p class="text-light opacity-50 fs-5 font-mono" style="font-size: 0.9rem !important;">Effective Date: July 31, 2025 <span class="mx-2">&bull;</span> Last Updated: July 31, 2025</p>
     </div>
   </header>
 
   <!-- Main Content -->
   <main class="py-5">
     <div class="container">
-      <div class="policy-content">
-        
-        <h2>Welcome to WorkEddy</h2>
+      <div class="policy-content tech-panel p-4 p-md-5">
+
+        <h2 class="mt-0">Welcome to WorkEddy</h2>
         <p>These Terms of Service govern your access to and use of WorkEddy.com, the WorkEddy platform, and any related software, services, content, support, analytics, reports, and tools provided by WorkEddy.</p>
         <p>By accessing or using the Services, you agree to be bound by these Terms. If you do not agree, do not access or use the Services.</p>
         <p>If you are using WorkEddy on behalf of a company, employer, or other organization, you represent that you have authority to bind that organization to these Terms. In that case, the words "you" and "your" refer to both you and that organization, as applicable.</p>
@@ -223,17 +226,17 @@ include_once __DIR__ . "/../partials/site/header.php";
 
         <h2>28. Contact us</h2>
         <p>If you have questions about these Terms, please contact:</p>
-        <div class="p-4 bg-light rounded-4 border mt-4">
-          <p class="mb-1 fw-bold">WorkEddy</p>
-          <p class="mb-1">Elhagibbor Solutions Limited</p>
-          <p class="mb-3">Block L, House 3, G.R.A. Layout, Jos, NG 933105</p>
-          <p class="mb-1"><strong>Email:</strong> <a href="mailto:privacy@workeddy.com" class="text-primary text-decoration-none">privacy@workeddy.com</a></p>
-          <p class="mb-0"><strong>Support:</strong> <a href="mailto:support@workeddy.com" class="text-primary text-decoration-none">support@workeddy.com</a></p>
+        <div class="p-4 contact-box mt-4">
+          <p class="mb-1 fw-bold text-white">WorkEddy</p>
+          <p class="mb-1 text-light opacity-75">Elhagibbor Solutions Limited</p>
+          <p class="mb-3 text-light opacity-75">Block L, House 3, G.R.A. Layout, Jos, NG 933105</p>
+          <p class="mb-1"><strong>Email:</strong> <a href="mailto:privacy@workeddy.com" class="text-cyan text-decoration-none">privacy@workeddy.com</a></p>
+          <p class="mb-0"><strong>Support:</strong> <a href="mailto:support@workeddy.com" class="text-cyan text-decoration-none">support@workeddy.com</a></p>
         </div>
 
       </div>
     </div>
   </main>
-<?php include_once __DIR__ . "/../partials/site/footer.php"; ?>
-</body>
-</html>
+
+  <!-- Footer -->
+<?php include __DIR__ . '/../partials/site/v2_footer.php'; ?>
